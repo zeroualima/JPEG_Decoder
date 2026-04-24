@@ -1,8 +1,8 @@
 # État de l'encodeur JPEG
 
-![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/propalCI/coverage.svg)
+![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
 
-[Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/propalCI)
+[Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
 
 # Notre encodeur JPEG à nous
 
@@ -30,7 +30,7 @@ Rajouter **régulièrement** des informations sur l'avancement de votre projet e
 * Fonctionnement simplifié à l'extrême et ultra portable
 * [Le guide de démarrage](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityGettingStartedGuide.md)
 * [La liste des assertions possibles](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsReference.md)
-* Exemples fournis dans tests/test_\*.c : à vous d'en ajouter et de les complèter
+* exemples fournis dans tests/test_\*.c : à vous d'en ajouter et de les complèter
 
 ## Pytest pour faire les tests d'intégrations
 ### Pourquoi ? 
@@ -69,9 +69,9 @@ C'est une métrique imparfaite qui ne capturé ni l'ILP du processeur ni les dé
 * Syntèse des tests : visible depuis build:jobs ou en cliquant sur le résultat du job
 * Intégration de la couverture de code :
 	* Résumé et suivi visible dans build:jobs
-	* Badge utilisable dans le README  : ![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/propalCI/badges/main/coverage.svg)
+	* Badge utilisable dans le README  : ![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
 	* Page de couverture consultable dans depuis le tableau de bord 
-* Génération d'un [tableau de bord incluant les stats(qualité, performance) par scénario, les infos mémoires, un lien vers les rapports et le profilage de Biiiiiiig](https://formationc.pages.ensimag.fr/projet/jpeg/propalCI)
+* Génération d'un [tableau de bord incluant les stats(qualité, performance) par scénario, les infos mémoires, un lien vers les rapports et le profilage de Biiiiiiig](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
 
 # Liens utiles
 
