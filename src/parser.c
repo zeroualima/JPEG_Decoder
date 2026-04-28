@@ -60,15 +60,15 @@ int read_file(int argc, char **argv) {
             }
             printf("\n");
         }
-        // Image *resized_img = resize(image, 1, 1, 5, 4);
-        // for (int y = 0; y < resized_img->height; y++) {
-        //     for (int x = 0; x < resized_img->width; x++) {
-        //         printf("%3d ", PIX(image, x, y));
-        //     }
-        //     printf("\n");
-        // }
-        free(image->data);
-        free(image);
+        Image *resized_img = resize(image, 1, 1, 5, 5);
+        for (int y = 0; y < resized_img->height; y++) {
+            for (int x = 0; x < resized_img->width; x++) {
+                printf("%3d ", PIX(resized_img, x, y));
+            }
+            printf("\n");
+        }
+        free(resized_img->data);
+        free(resized_img);
     } else if (strcmp(magic, "P6") == 0) {
         Image *image = ppm_parser(f, width, height);for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {

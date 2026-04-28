@@ -2,14 +2,15 @@
 
 Image *resize(Image *old, int mcu_h, int mcu_v, int block_h, int block_v) {
     int reste_h = old->width % (block_h * mcu_h);
-    int nbr_clonnes_a_ajouter = block_h * mcu_h - reste_h;
+    int nbr_clonnes_a_ajouter = (reste_h == 0) ? 0 : block_h * mcu_h - reste_h;
 
     int reste_v = old->height % (block_v * mcu_v);
-    int nbr_lignes_a_ajouter = block_v * mcu_v - reste_v;
+    int nbr_lignes_a_ajouter = (reste_v == 0) ? 0 : block_v * mcu_v - reste_v;
 
     Image *new = malloc(sizeof(Image));
     new->width = old->width + nbr_clonnes_a_ajouter;
     new->height = old->height + nbr_lignes_a_ajouter;
+    printf("%d %d -> %d %d\n", old->width, old->height, new->width, new->height);
     new->colors = old->colors;
     new->data = malloc(new->width * new->height * new->colors);
 
@@ -31,7 +32,7 @@ Image *resize(Image *old, int mcu_h, int mcu_v, int block_h, int block_v) {
                     G(new, x, y) = G(old, old->width - 1, y);
                     B(new, x, y) = B(old, old->width - 1, y);
                 }
-            } else {
+            } else if (x < old->width) {
                 if (new->colors == 1) {
                     PIX(new, x, y) = PIX(old, x, old->height - 1);
                 } else {
@@ -39,12 +40,27 @@ Image *resize(Image *old, int mcu_h, int mcu_v, int block_h, int block_v) {
                     G(new, x, y) = G(old, x, old->height - 1);
                     B(new, x, y) = B(old, x, old->height - 1);
                 }
+            } else {
+                if (new->colors == 1) {
+                    PIX(new, x, y) = PIX(old, old->width - 1, old->height - 1);
+                } else {
+                    R(new, x, y) = R(old, old->width - 1, old->height - 1);
+                    G(new, x, y) = G(old, old->width - 1, old->height - 1);
+                    B(new, x, y) = B(old, old->width - 1, old->height - 1);
+                }
             }
+            // if (new->colors == 1) {
+            //     PIX(new, x, y) = 0;
+            // } else {
+            //     R(new, x, y) = 0;
+            //     G(new, x, y) = 0;
+            //     B(new, x, y) = 0;
+            // }
         }
     }
 
-    // free(old->data);
-    // free(old);
+    free(old->data);
+    free(old);
 
     return new;
 }
