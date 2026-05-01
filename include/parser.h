@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 #define PIX(img, x, y) ((img)->data[(y)*(img)->width + (x)])
 #define R(img, x, y) ((img)->data[3*((y)*(img)->width + (x)) + 0])
 #define G(img, x, y) ((img)->data[3*((y)*(img)->width + (x)) + 1])
@@ -20,7 +21,7 @@ typedef struct {
 
 Image *read_pgm(FILE *f, int width, int height);
 Image *read_ppm(FILE *f, int width, int height);
-int read_file(int argc, char **argv);
+Image *read_file(FILE *f, int mcu_h, int mcu_v, int block_h, int block_v);
 
 
 #endif
