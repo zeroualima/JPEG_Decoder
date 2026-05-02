@@ -16,7 +16,7 @@ uint8_t app0[] = {
 };
 
 // DQT
-void write_DQT(FILE *f, uint8_t iQ, uint8_t table_zigzag[64]) {
+void write_DQT(FILE *f, uint8_t iQ, const uint8_t table_zigzag[64]) {
     uint8_t entete[] = {
         0xFF, 0xDB, // marqueur DQT
         0x00, 0x43, // longueur = 67 = 2(2 octets de longueur eux-mêmes) + 1(le byte précision/iQ) + 64(les valeurs de la table)
@@ -52,7 +52,7 @@ void write_SOF0(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs
 }
 
 // DHT
-void write_DHT(FILE *f, uint8_t is_AC, uint8_t iH, uint8_t nb_symb_per_lengths[16], uint8_t *symboles) {
+void write_DHT(FILE *f, uint8_t is_AC, uint8_t iH, const uint8_t nb_symb_per_lengths[16], const uint8_t *symboles) {
     uint8_t N = 0; // Nombre de symbole
     for (int i = 0; i < 16; i++) N += nb_symb_per_lengths[i];
 
@@ -105,7 +105,14 @@ void write_SOS(FILE *f, uint8_t nb_couleurs, uint8_t iH_DC_Y, uint8_t iH_AC_Y, u
     fwrite(fin, 1, sizeof(fin), f);
 }
 
-void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, uint8_t fH_Y, uint8_t fV_Y, uint8_t fH_Cb, uint8_t fV_Cb,  uint8_t fH_Cr, uint8_t fV_Cr) {
+void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, sampling_factors s, int nb_blocs, bloc *blocs) {
+    uint8_t fH_Y = s.h[0];
+    uint8_t fV_Y = s.v[0];
+    uint8_t fH_Cb = s.h[1];
+    uint8_t fV_Cb = s.v[1];
+    uint8_t fH_Cr = s.h[2];
+    uint8_t fV_Cr = s.v[2];
+
     // SOI
     fwrite(soi, 1, 2, f);
 
@@ -135,7 +142,22 @@ void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs,
     }
 
     // BitStream
-    
+    /* ===================== Huffmann ===================== */
+    int predY = 0;
+    int predCb = 0;
+    int predCr = 0;
+    for (int i = 0; i < nb_blocs; i++) {
+        if (blocs[i].type == Y) {
+            chaine_Huff_vect(f, blocs[i].data, true, false, predY);
+            predY = (blocs[i].data)[0];
+        } else if (blocs[i].type == Cb) {
+            chaine_Huff_vect(f, blocs[i].data, false, true, predCb);
+            predCb = (blocs[i].data)[0];
+        } else {
+            chaine_Huff_vect(f, blocs[i].data, false, false, predCr);
+            predCr = (blocs[i].data)[0];
+        }
+    }
 
     // EOI
     fwrite(eoi, 1, 2, f);

@@ -8,6 +8,12 @@ uint8_t buffer = 0;
 uint8_t bit_count = 0;
 
 void write_bits(FILE *f, int val, int nbr_bits) {
+    // si nbr_bits > 8, on traite par tranches de 8 bits
+    if (nbr_bits > 8) {
+        write_bits(f, val >> 8, nbr_bits - 8);      // bits de poids fort d'abord
+        write_bits(f, val & 0xFF, 8);                // puis les 8 bits de poids faible
+        return;
+    }
     if (bit_count + nbr_bits > 8 && nbr_bits <= 8) {
         buffer = (buffer << (8 - bit_count)) | (val >> (nbr_bits + bit_count - 8));
         fwrite(&buffer, 1, 1, f);
@@ -63,44 +69,68 @@ Coeff_Huff magnitude(int val) {
     return new;
 }
 
-Chemin_Huff codage_Huff(int classe, uint8_t htables_nb_symb_per_lengths[], uint8_t htables_symbols[]) {
-    Chemin_Huff new;
-    int profondeur = 1;
-    int chemin = -1;
+// Chemin_Huff codage_Huff(int classe, const uint8_t htables_nb_symb_per_lengths[], const uint8_t htables_symbols[]) {
+//     Chemin_Huff new;
+//     int profondeur = 1;
+//     int chemin = -1;
+//     int indice = 0;
+//     while (htables_symbols[indice] != classe) {
+//         if (htables_nb_symb_per_lengths[profondeur] == 0) {
+//             profondeur++;
+//             continue;
+//         } else {
+//             int compteur = 1;
+//             chemin = 2*(chemin + 1);
+//             indice++;
+//             compteur++;
+//             while (compteur <= htables_nb_symb_per_lengths[profondeur] && htables_symbols[indice] != classe) {
+//                 chemin++;
+//                 indice++;
+//                 compteur++;
+//             }
+//             if (htables_symbols[indice] == classe) {
+//                 if (compteur <= htables_nb_symb_per_lengths[profondeur]) {
+//                     chemin++;
+//                 } else {
+//                     chemin = 2*(chemin + 1);
+//                     profondeur++;
+//                 }
+//                 new.chemin = chemin;
+//                 new.profondeur = profondeur;
+//                 return new;
+//             }
+//             profondeur++;
+//         }
+//     }
+//     fprintf(stderr, "SOMETHING BAD HAPPENED!\n");
+//     return new;
+// }
+
+Chemin_Huff codage_Huff(int classe, const uint8_t counts[], const uint8_t symbols[]) {
+    Chemin_Huff result;
+    int code = 0;
     int indice = 0;
-    while (htables_symbols[indice] != classe) {
-        if (htables_nb_symb_per_lengths[profondeur] == 0) {
-            profondeur++;
-            continue;
-        } else {
-            int compteur = 1;
-            chemin = 2*(chemin + 1);
+
+    for (int profondeur = 1; profondeur <= 16; profondeur++) {
+        for (int j = 0; j < counts[profondeur - 1]; j++) {
+            if (symbols[indice] == (uint8_t)classe) {
+                result.chemin = code;
+                result.profondeur = profondeur;
+                return result;
+            }
+            code++;
             indice++;
-            compteur++;
-            while (compteur <= htables_nb_symb_per_lengths[profondeur] && htables_symbols[indice] != classe) {
-                chemin++;
-                indice++;
-                compteur++;
-            }
-            if (htables_symbols[indice] == classe) {
-                if (compteur <= htables_nb_symb_per_lengths[profondeur]) {
-                    chemin++;
-                } else {
-                    chemin = 2*(chemin + 1);
-                    profondeur++;
-                }
-                new.chemin = chemin;
-                new.profondeur = profondeur;
-                return new;
-            }
-            profondeur++;
         }
+        code <<= 1;  // passer au niveau suivant
     }
-    fprintf(stderr, "SOMETHING BAD HAPPENED!\n");
-    return new;
+
+    fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
+    result.chemin = 0;
+    result.profondeur = 0;
+    return result;
 }
 
-void chaine_Huff_coeff(FILE *f, int coeff, int cpt_zeros, bool is_DC, bool is_Y, bool is_Cb, int predicateur) {
+void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool is_Y, bool is_Cb, int predicateur) {
     if (is_DC) {
         Coeff_Huff coeff_info = magnitude(coeff - predicateur);
         Chemin_Huff code;
@@ -130,7 +160,7 @@ void chaine_Huff_coeff(FILE *f, int coeff, int cpt_zeros, bool is_DC, bool is_Y,
     }
 }
 
-void chaine_Huff_vect(FILE *f, int *coeffs, bool is_Y, bool is_Cb, int predicateur) {
+void chaine_Huff_vect(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predicateur) {
     chaine_Huff_coeff(f, coeffs[0], -1, true, is_Y, is_Cb, predicateur);
     int cpt_zeros = 0;
     for (int i = 1; i < 64; i++) { // Detect when all comings are zeros
@@ -148,6 +178,18 @@ void chaine_Huff_vect(FILE *f, int *coeffs, bool is_Y, bool is_Cb, int predicate
                 write_bits(f, eob.chemin, eob.profondeur);
             }
         } else {
+            // ZRL : émettre 0xF0 pour chaque groupe de 16 zéros
+            while (cpt_zeros >= 16) {
+                Chemin_Huff zrl;
+                if (is_Y)
+                    zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
+                else if (is_Cb)
+                    zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
+                else
+                    zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
+                write_bits(f, zrl.chemin, zrl.profondeur);
+                cpt_zeros -= 16;
+            }
             chaine_Huff_coeff(f, coeffs[i], cpt_zeros, false, is_Y, is_Cb, -1);
             cpt_zeros = 0;
         }
