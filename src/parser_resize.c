@@ -1,115 +1,152 @@
 #include "parser_resize.h"
 
-/*
-    - lire les images de puis les fichiers .pgm et .ppm  
-    - constuire la structure "Image", avec :
-        -> data : un pointeur vers un tableau des valeurs des pixels  
-*/
+void init_mcu(rgb_mcu *m, sampling_factors s) {
+    m->data = calloc(8 * 8 * s.h[0] * s.v[0], sizeof(RGB));
+}
 
-// fread(mcu, 1, h[0]*8, f)
-// fread(NULL, 1, 2*h[0]*8, f)
-
-/* image sans colors */
-void read_pgm(FILE *f, int width, int height, Image *image) {
-    image->width = width;
-    image->height = height;
-    image->colors = 1;
-    image->data = malloc(width * height);
-
-    if (fread(image->data, 1, width * height, f) != (size_t)width * height) {
-        fprintf(stderr, "ERREUR : fread failed\n");
+void skip_whitespace_and_comments(FILE *fp) {
+    int c;
+    while (1) {
+        c = fgetc(fp);
+        if (isspace(c)) continue;
+        if (c == '#') {
+            while ((c = fgetc(fp)) != '\n' && c != EOF);
+            continue;
+        }
+        ungetc(c, fp);
+        break;
     }
 }
 
-/* image avec colors */
-void read_ppm(FILE *f, int width, int height, Image *image) {
-    image->width = width;
-    image->height = height;
-    image->colors = 3;
-    image->data = malloc(width * height * 3);
+/* bytes per pixel: colors for 8-bit, colors*2 for 16-bit */
+static inline int bpp(int maxval, int colors) { return (maxval <= 255) ? colors : colors * 2; }
 
-    if (fread(image->data, sizeof(*image->data), width * height * 3, f) != (size_t)width * height * 3 * sizeof(*image->data)) {
-        fprintf(stderr, "ERREUR : fread failed\n");
-    }
-}
-
-/* lire l'image et adapter ses dimensions */
-void read_file(FILE *f, Image *image) {
-    char magic[3];
-    int width, height, maxval;
-
-    if (fscanf(f, "%2s", magic) != 1) {
-        fclose(f);
-        exit(EXIT_FAILURE);
-    }
-    if (fscanf(f, "%d %d", &width, &height) != 2) {
-        fclose(f);
-        exit(EXIT_FAILURE);
-    }
-    if (fscanf(f, "%d", &maxval) != 1) {
-        fclose(f);
-        exit(EXIT_FAILURE);
-    }
-    fgetc(f);
-
-    if (strcmp(magic, "P5") == 0) {
-        read_pgm(f, width, height, image);
-    } else if (strcmp(magic, "P6") == 0) {
-        read_ppm(f, width, height, image);
-    } else {
-        fprintf(stderr, "ERREUR : unsupported format (P5/P6 expected)\n");
-        fclose(f);
-        exit(EXIT_FAILURE);
-    }
-
-    fclose(f);
-}
-
-void write_pixel(Image *old, Image *new, int new_x, int new_y, int old_x, int old_y) {
-    if (new->colors == 1) {
-        PIX(new, new_x, new_y) = PIX(old, old_x, old_y);
-    } else {
-        R(new, new_x, new_y) = R(old, old_x, old_y);
-        G(new, new_x, new_y) = G(old, old_x, old_y);
-        B(new, new_x, new_y) = B(old, old_x, old_y);
-    }
-}
-
-void refill(Image *old, Image *new) {
-    for (int y = 0; y < new->height; y++) {
-        for (int x = 0; x < new->width; x++) {
-            if (y < old->height && x < old->width) {
-                write_pixel(old, new, x, y, x, y);
-            } else if (y < old->height) {
-                write_pixel(old, new, x, y, old->width - 1, y);
-            } else if (x < old->width) {
-                write_pixel(old, new, x, y, x, old->height - 1);
-            } else {
-                write_pixel(old, new, x, y,old->width - 1, old->height - 1);
+/* read one pixel from f into dst, handling PGM (colors=1) and PPM (colors=3),
+   8-bit and 16-bit. PGM gray value is replicated to all 3 channels. */
+static void read_pixel(RGB dst, int maxval, int colors, FILE *f) {
+    if (colors == 1) {
+        if (maxval <= 255) {
+            uint8_t g;
+            if (fread(&g, 1, 1, f) != (size_t)1) {
+                fprintf(stderr, "ERREUR : fread failed\n");
             }
+            dst[0] = dst[1] = dst[2] = g;
+        } else {
+            uint8_t buf[2];
+            if (fread(buf, 1, 2, f) != (size_t)2) {
+                fprintf(stderr, "ERREUR : fread failed\n");
+            }
+            dst[0] = dst[1] = dst[2] = (int16_t)((buf[0] << 8) | buf[1]);
+        }
+    } else {
+        if (maxval <= 255) {
+            uint8_t buf[3];
+            if (fread(buf, 1, 3, f) != (size_t)3) {
+                fprintf(stderr, "ERREUR : fread failed\n");
+            }
+            dst[0] = buf[0];
+            dst[1] = buf[1];
+            dst[2] = buf[2];
+        } else {
+            uint8_t buf[6];
+            if (fread(buf, 1, 6, f) != (size_t)6) {
+                fprintf(stderr, "ERREUR : fread failed\n");
+            }
+            dst[0] = (int16_t)((buf[0] << 8) | buf[1]);
+            dst[1] = (int16_t)((buf[2] << 8) | buf[3]);
+            dst[2] = (int16_t)((buf[4] << 8) | buf[5]);
         }
     }
 }
 
-/* width et height multiple de 8 * h1 et 8 * v1 */
-void resize(Image *old, Image *new, sampling_factors s) {
+void detect_mcu(Image *image, sampling_factors s);
 
-    int mcu_w = s.h[0] * 8;
-    int mcu_h = s.v[0] * 8;
+void init_image(Image *image, char *path, sampling_factors s) {
+    image->f = fopen(path, "rb");
 
-    int reste_h = old->width  % mcu_w;
-    int reste_v = old->height % mcu_h;
+    if (!fscanf(image->f, "%2s", image->magic)) {
+        fclose(image->f);
+        exit(EXIT_FAILURE);
+    }
+    skip_whitespace_and_comments(image->f);
+    if (!fscanf(image->f, "%d", &image->w)) {
+        fclose(image->f);
+        exit(EXIT_FAILURE);
+    }
+    skip_whitespace_and_comments(image->f);
+    if (!fscanf(image->f, "%d", &image->h)) {
+        fclose(image->f);
+        exit(EXIT_FAILURE);
+    }
+    skip_whitespace_and_comments(image->f);
+    if (!fscanf(image->f, "%d", &image->maxval)) {
+        fclose(image->f);
+        exit(EXIT_FAILURE);
+    }
+    fgetc(image->f);
 
-    int nbr_colonnes_a_ajouter = (reste_h == 0) ? 0 : mcu_w - reste_h;
-    int nbr_lignes_a_ajouter   = (reste_v == 0) ? 0 : mcu_h - reste_v;
+    image->header_offset = ftell(image->f);
+    image->colors = (image->magic[1] == '5') ? 1 : 3;
 
-    new->width = old->width + nbr_colonnes_a_ajouter;
-    new->height = old->height + nbr_lignes_a_ajouter;
-    printf("%d %d -> %d %d\n", old->width, old->height, new->width, new->height);
-    new->colors = old->colors;
-    new->data = malloc(new->width * new->height * new->colors);
+    int unit_w = 8 * s.h[0];
+    int unit_h = 8 * s.v[0];
+    image->pw = ((image->w + unit_w - 1) / unit_w) * unit_w;
+    image->ph = ((image->h + unit_h - 1) / unit_h) * unit_h;
 
-    refill(old, new);
+    detect_mcu(image, s);
 }
 
+void detect_mcu(Image *image, sampling_factors s) {
+    int mcu_rows = image->ph / (8 * s.v[0]);
+    int mcu_cols = image->pw / (8 * s.h[0]);
+    image->mcu_count = mcu_rows * mcu_cols;
 
+    image->mcus_starting_position = malloc(sizeof(long) * image->mcu_count);
+
+    int k = 0;
+    for (int i = 0; i < mcu_rows; i++) {
+        for (int j = 0; j < mcu_cols; j++) {
+            int pixel_row = i * 8 * s.v[0];
+            int pixel_col = j * 8 * s.h[0];
+            image->mcus_starting_position[k++] = image->header_offset + (long)(pixel_row * image->w + pixel_col) * bpp(image->maxval, image->colors);
+        }
+    }
+
+    init_mcu(&image->current_mcu, s);
+}
+
+void fill_mcu(Image *image, rgb_mcu *m, sampling_factors s, long start_position) {
+    int bytes_pp        = bpp(image->maxval, image->colors);
+    int row_stride      = image->w * bytes_pp;
+    int mcu_width       = 8 * s.h[0];
+    int mcu_height      = 8 * s.v[0];
+    int pixel_col_start = (int)(((start_position - image->header_offset) % row_stride) / bytes_pp);
+
+    for (int i = 0; i < mcu_height; i++) {
+        long file_row_offset = start_position + i * row_stride;
+        long pixel_row       = (file_row_offset - image->header_offset) / row_stride;
+
+        if (pixel_row < image->h) {
+            fseek(image->f, file_row_offset, SEEK_SET);
+            for (int j = 0; j < mcu_width; j++) {
+                if (pixel_col_start + j < image->w) {
+                    read_pixel(m->data[i * mcu_width + j], image->maxval, image->colors, image->f);
+                } else {
+                    m->data[i * mcu_width + j][0] = m->data[i * mcu_width + j - 1][0];
+                    m->data[i * mcu_width + j][1] = m->data[i * mcu_width + j - 1][1];
+                    m->data[i * mcu_width + j][2] = m->data[i * mcu_width + j - 1][2];
+                }
+            }
+        } else {
+            if (i > 0)
+                memcpy(m->data[i * mcu_width], m->data[(i - 1) * mcu_width],
+                       sizeof(RGB) * mcu_width);
+        }
+    }
+}
+
+void free_all(Image *image, rgb_mcu *m) {
+    free(image->mcus_starting_position);
+    free(m->data);
+    fclose(image->f);
+}

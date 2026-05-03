@@ -26,6 +26,6 @@ static const int zigzag[64] = {
 /* prototypres */
 void zz(uint8_t *block);
 void zz_bloc(int16_t *input, int16_t *output);
-void zz_application(bloc *dct_flow, bloc *zz_flow, int nb_blocs);
+void zz_application(bloc *dct_flow, bloc *zz_flow, int nbr_blocs);
 
 #endif /* _ZZ_H_ */

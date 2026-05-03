@@ -64,8 +64,8 @@ void dct_bloc_1d(int16_t *input, int16_t *output, double *cos_table) {
 }
 
 /* application de DCT sur toutes les blocs */
-void dct_application(bloc *mcu_flow, bloc *dct_flow, int nb_blocs, double *cos_table) {
-    for (int b = 0; b < nb_blocs; b++) {
+void dct_application(bloc *mcu_flow, bloc *dct_flow, int nbr_blocs, double *cos_table) {
+    for (int b = 0; b < nbr_blocs; b++) {
         /* on utilise la DCT optimisé */
         // dct_bloc_naive(mcu_flow[b].data, dct_flow[b].data, cos_table);
         dct_bloc_1d(mcu_flow[b].data, dct_flow[b].data, cos_table);

@@ -105,7 +105,7 @@ void write_SOS(FILE *f, uint8_t nb_couleurs, uint8_t iH_DC_Y, uint8_t iH_AC_Y, u
     fwrite(fin, 1, sizeof(fin), f);
 }
 
-void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, sampling_factors s, int nb_blocs, bloc *blocs) {
+void add_JPEG_entete(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, sampling_factors s) {
     uint8_t fH_Y = s.h[0];
     uint8_t fV_Y = s.v[0];
     uint8_t fH_Cb = s.h[1];
@@ -140,12 +140,16 @@ void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs,
     } else {
         write_SOS(f, 3, 0, 0, 1, 1);
     }
+}
 
+
+int predY = 0;
+int predCb = 0;
+int predCr = 0;
+
+void add_JPEG_total_bitstream(FILE *f, int nb_blocs, bloc *blocs) {
     // BitStream
     /* ===================== Huffmann ===================== */
-    int predY = 0;
-    int predCb = 0;
-    int predCr = 0;
     for (int i = 0; i < nb_blocs; i++) {
         if (blocs[i].type == Y) {
             chaine_Huff_vect(f, blocs[i].data, true, false, predY);
@@ -158,7 +162,25 @@ void make_JPEG(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs,
             predCr = (blocs[i].data)[0];
         }
     }
+}
 
+void add_JPEG_end(FILE *f) {
     // EOI
     fwrite(eoi, 1, 2, f);
 }
+
+
+// void add_JPEG_bitstream(FILE *f, bloc bloc) {
+//     // BitStream
+//     /* ===================== Huffmann ===================== */
+//     if (bloc.type == Y) {
+//         chaine_Huff_vect(f, bloc.data, true, false, predY);
+//         predY = (bloc.data)[0];
+//     } else if (bloc.type == Cb) {
+//         chaine_Huff_vect(f, bloc.data, false, true, predCb);
+//         predCb = (bloc.data)[0];
+//     } else {
+//         chaine_Huff_vect(f, bloc.data, false, false, predCr);
+//         predCr = (bloc.data)[0];
+//     }
+// }
