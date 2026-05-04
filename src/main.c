@@ -10,16 +10,23 @@
 int main(int argc, char **argv) {
     char *infile = NULL;
     char *outfile_arg = NULL;
+    char *sampling_arg = NULL;
 
     for (int i = 1; i < argc; i++) {
-        if (strncmp(argv[i], "--outfile=", 10) == 0)
+        if (strncmp(argv[i], "--help", 6) == 0) {
+            printf("Usage: %s [--outfile=<output.jpg>] [--sample=h1xv1,h2xv2,h3xv3] <input>\n", argv[0]);
+            return 0;
+        } else if (strncmp(argv[i], "--outfile=", 10) == 0) {
             outfile_arg = argv[i] + 10;
-        else
+        } else if (strncmp(argv[i], "--sample=", 9) == 0) {
+            sampling_arg = argv[i] + 9;
+        } else {
             infile = argv[i];
+        }
     }
 
     if (!infile) {
-        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] <input>\n", argv[0]);
+        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=h1xv1,h2xv2,h3xv3] <input>\n", argv[0]);
         exit(1);
     }
 
@@ -58,7 +65,8 @@ int main(int argc, char **argv) {
         if (output_path_allocated) free(output_path);
         exit(1);
     }
-    if (output_path_allocated) free(output_path);
+    if (output_path_allocated) 
+        free(output_path);
 
     // Sampling
     sampling_factors s;
@@ -66,8 +74,12 @@ int main(int argc, char **argv) {
         s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
         s.h[2] = 1; s.v[2] = 1;
+    } else if (sampling_arg) {
+        s.h[0] = sampling_arg[0] - '0'; s.v[0] = sampling_arg[2] - '0';
+        s.h[1] = sampling_arg[4] - '0'; s.v[1] = sampling_arg[6] - '0';
+        s.h[2] = sampling_arg[8] - '0'; s.v[2] = sampling_arg[10] - '0';
     } else {
-        s.h[0] = 2; s.v[0] = 2;
+        s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
         s.h[2] = 1; s.v[2] = 1;
     }
@@ -115,7 +127,7 @@ int main(int argc, char **argv) {
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
-    fprintf(stderr, "Encoding time: %.4f s\n", elapsed);
+    printf("Encoding time: %.4f s\n", elapsed);
 
     free(tmp_ycbcr.Y); free(tmp_ycbcr.Cb); free(tmp_ycbcr.Cr);
     free(tmp_blocs);
@@ -133,4 +145,5 @@ int main(int argc, char **argv) {
 
     fclose(f_lire);
     fclose(f_ecrire);
+    return 0;
 }

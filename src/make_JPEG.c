@@ -165,6 +165,7 @@ void add_JPEG_total_bitstream(FILE *f, int nb_blocs, bloc *blocs) {
 }
 
 void add_JPEG_end(FILE *f) {
+    flush_bits(f);
     // EOI
     fwrite(eoi, 1, 2, f);
 }
