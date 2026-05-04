@@ -54,10 +54,11 @@ void write_SOF0(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs
 // DHT
 void write_DHT(FILE *f, uint8_t is_AC, uint8_t iH, const uint8_t nb_symb_per_lengths[16], const uint8_t *symboles) {
     uint8_t N = 0; // Nombre de symbole
-    for (int i = 0; i < 16; i++) N += nb_symb_per_lengths[i];
+    for (int i = 0; i < 16; i++) {
+        N += nb_symb_per_lengths[i];
+    }
 
-    // longueur = 2 (longueur) + 1 (TT) + 16 (comptes) + N (symboles)
-    uint16_t longueur = 2 + 1 + 16 + N;
+    uint16_t longueur = 2 + 1 + 16 + N; // longueur = 2 (longueur) + 1 (Type) + 16 (comptes) + N (symboles)
 
     uint8_t entete[] = {
         0xFF, 0xC4, // marqueur DHT

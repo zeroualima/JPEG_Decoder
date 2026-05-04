@@ -1,10 +1,6 @@
 #include "dct.h"
 #include <math.h>
 
-void dct_naive(int16_t *block) {
-    (void)block;
-}
-
 /* calcule des valeurs cos */
 void cos_init(double *cos_table) {
     for (int i = 0; i < 8; i++)

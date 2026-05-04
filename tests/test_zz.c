@@ -36,7 +36,8 @@ void test_position(void) {
 	58, 59, 52, 45, 38, 31, 39, 46, 
 	53, 60, 61, 54, 47, 55, 62, 63 
     };
-    zz(identite);
+    
+    
     TEST_ASSERT_EQUAL_UINT8_ARRAY(zzi,identite,64);
 }
 
