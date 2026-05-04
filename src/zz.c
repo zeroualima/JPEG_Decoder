@@ -1,9 +1,5 @@
 #include "zz.h"
 
-void zz(uint8_t *block) {
-	(void)block;
-}
-
 /* zig-zag sur un bloc du flux DCT (bloc de 8*8 sous forme de vecteur) */
 void zz_bloc(int16_t *input, int16_t *output) {
     for (int i = 0; i < 8; i++) {

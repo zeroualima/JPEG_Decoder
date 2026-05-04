@@ -1,5 +1,4 @@
 #include "dct.h"
-#include <math.h>
 
 /* calcule des valeurs cos */
 void cos_init(double *cos_table) {

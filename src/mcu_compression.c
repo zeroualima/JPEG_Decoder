@@ -29,19 +29,19 @@ void test_sampling_factors(sampling_factors s) {
     return;
 }
 
-/* calcule de nombre de MCU totale */
-int nbr_mcu(int width, int height, sampling_factors s) {
+// /* calcule de nombre de MCU totale */
+// int nbr_mcu(int width, int height, sampling_factors s) {
     
-    int mcu_width  = s.h[0] * 8;
-    int mcu_height = s.v[0] * 8;
+//     int mcu_width  = s.h[0] * 8;
+//     int mcu_height = s.v[0] * 8;
 
-    int nbr_mcu_x = width  / mcu_width;
-    int nbr_mcu_y = height / mcu_height;
+//     int nbr_mcu_x = width  / mcu_width;
+//     int nbr_mcu_y = height / mcu_height;
 
-    int nbr_mcu = nbr_mcu_x * nbr_mcu_y;
+//     int nbr_mcu = nbr_mcu_x * nbr_mcu_y;
 
-    return nbr_mcu; 
-}
+//     return nbr_mcu; 
+// }
 
 /* remplisage du bloc 8*8 de Y de coordonne (origine_x, origine_y) */
 void bloc_Y(uint8_t *Y, int mcu_width, int origine_x, int origine_y, int16_t bloc[64]) {
