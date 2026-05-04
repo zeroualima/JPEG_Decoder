@@ -50,22 +50,13 @@ void flush_bits(FILE *f) {
 Coeff_Huff magnitude(int val) {
     Coeff_Huff new;
     if (val < -2047 || val > 2047) fprintf(stderr, "val < -2047 ou val > 2047\n");
-    // La classe 0 corresponds a un coeff 0
-    // La classe m (dans [1, 11]) contient les elements :
-    // [-(2(2^(m-1)) - 1); -(2^(m-1))]U[(2^(m-1)); (2(2^(m-1)) - 1)]
     uint8_t classe = 0;
     if (val != 0) {
-        for (uint8_t m = 1; m <= 11; m++) {
-            int b = pow(2, m-1);
-            if ((-(2*b - 1) <= val && val <= -b) || (b <= val && val <= (2*b - 1))) {
-                classe = m;
-                break;
-            }
-        }
+        int absval = val < 0 ? -val : val;
+        classe = 32 - __builtin_clz(absval);
     }
     new.classe = classe;
-    int indice = (val >= 0) ? val : val + (2*pow(2, classe - 1) - 1); // type ?
-    new.indice = indice;
+    new.indice = (val >= 0) ? val : val + (1 << classe) - 1;
     return new;
 }
 
@@ -155,7 +146,8 @@ void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool i
         }
         write_bits(f, code.chemin, code.profondeur);
         // print_bits(coeff_info.indice, coeff_info.classe); // Inutile, il faut l'indice dans la classe de magnitude du coeff du vecteur non pas de sa representation Huffmann
-        write_bits(f, magnitude(coeff).indice, magnitude(coeff).classe); // Ici l'indice est code sur m bits
+        Coeff_Huff coeff_ac = magnitude(coeff);
+        write_bits(f, coeff_ac.indice, coeff_ac.classe);
         // printf("%b", magnitude(coeff).indice); // Ici l'indice est code sur le minimum de bits
     }
 }

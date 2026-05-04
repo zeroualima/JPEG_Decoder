@@ -44,32 +44,16 @@
         else         { colors = 1; }
 */
 
-void traitement_mcu(rgb_mcu *vect_img, bloc *mcu_flow, sampling_factors s, int nbr_pixels, int nbr_bloc_mcu, double *cos_table, int colors) {
+void traitement_mcu(rgb_mcu *vect_img, bloc *mcu_flow, sampling_factors s, int nbr_bloc_mcu, double *cos_table, int colors, ycbcr_mcu *tmp_1, bloc *tmp_2) {
 
     /* etape_1 : conversion RGB en YCbCr */
-
-    ycbcr_mcu tmp_1;
-    tmp_1.Y  = malloc(nbr_pixels);
-    tmp_1.Cb = malloc(nbr_pixels);
-    tmp_1.Cr = malloc(nbr_pixels);   
-
-    rgb_ycbcr(vect_img, &tmp_1, s, colors);
+    rgb_ycbcr(vect_img, tmp_1, s, colors);
 
     /* etape_2 : mcu_compression et downsampling */
-
-    bloc *tmp_2 = malloc(nbr_bloc_mcu * sizeof(bloc));
-
-    mcu_flow_writing(&tmp_1, tmp_2, s, colors);
-
-    free(tmp_1.Y);
-    free(tmp_1.Cb);
-    free(tmp_1.Cr);
+    mcu_flow_writing(tmp_1, tmp_2, s, colors);
 
     /* etape_3 : dct, zig-zag et quantification */
-
     dct_application(tmp_2, mcu_flow, nbr_bloc_mcu, cos_table);
     zz_application(mcu_flow, tmp_2, nbr_bloc_mcu);
     quantification_application(tmp_2, mcu_flow, nbr_bloc_mcu);
-
-    free(tmp_2);
 }

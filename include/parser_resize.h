@@ -35,6 +35,9 @@ typedef struct {
     int mcu_count;                  // how many mcu we've got
     int colors;                     // 1 for PGM (P5), 3 for PPM (P6)
     rgb_mcu current_mcu;            // points  to the current mcu
+    uint8_t *row_buffer;            // sliding buffer of mcu_height pixel rows
+    int row_buffer_pixel_start;     // which pixel row is at index 0 of row_buffer (-1 = empty)
+    int row_buffer_height;          // number of rows the buffer holds (= 8*v[0])
 } Image;
 
 /* prototypes */

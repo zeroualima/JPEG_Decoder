@@ -11,6 +11,6 @@
 /* structures */
 
 /* prototypes */
-void traitement_mcu(rgb_mcu *vect_img, bloc *mcu_flow, sampling_factors s, int nbr_pixels, int nbr_bloc_mcu, double *cos_table, int colors);
+void traitement_mcu(rgb_mcu *vect_img, bloc *mcu_flow, sampling_factors s, int nbr_bloc_mcu, double *cos_table, int colors, ycbcr_mcu *tmp_1, bloc *tmp_2);
 
 #endif /* _TRAITEMENT_MCU_H_ */
