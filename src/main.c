@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     }
     if (output_path_allocated) free(output_path);
 
-/* ===================== SAMPLING ===================== */
+    // Sampling
     sampling_factors s;
     if (nb_colors == 1) {
         s.h[0] = 1; s.v[0] = 1;
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     }
     test_sampling_factors(s);
 
-/* ===================== LECTURE ===================== */
+    // Lecture
     
     Image *image = malloc(sizeof(Image));
     init_image(image, infile, s);
 
-/* ===================== ECRITURE ===================== */
+    // Ecriture
     int colors = (nb_colors == 1) ? 0 : 1;
 
     int blocs_Y  = s.h[0] * s.v[0];
