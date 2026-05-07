@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <syscall.h>
 
 #include "parser_resize.h"
 #include "traitement_mcu.h"
@@ -117,13 +118,31 @@ int main(int argc, char **argv) {
     struct timespec t_start, t_end;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
 
-    add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s);
-    for (int i = 0; i < image->mcu_count; i++) {
-        fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
-        traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
-        add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+    // add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s);
+    // for (int i = 0; i < image->mcu_count; i++) {
+    //     fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
+    //     traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+    //     add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+    // }
+    // add_JPEG_end(f_ecrire);
+
+    #define SCANS 5
+    int debut[SCANS] = {0, 1, 1, 1, 9};
+    int fin[SCANS] = {0, 8, 63, 63, 63};
+    add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
+    for (int scan = 0; scan < SCANS; scan++) {
+        if (nb_colors == 1) {
+            write_SOS(f_ecrire, 1, 0, 0, 0, 0, debut[scan], fin[scan], 0); // Spectral selection 
+        } else {
+            write_SOS(f_ecrire, 3, 0, 0, 1, 1, debut[scan], fin[scan], 0); // Spectral selection
+        }
+        for (int i = 0; i < image->mcu_count; i++) {
+            fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
+            traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+            add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan + 1);
+        }
+        add_JPEG_end(f_ecrire);
     }
-    add_JPEG_end(f_ecrire);
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;

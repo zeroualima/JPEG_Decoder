@@ -45,9 +45,11 @@ void test_sampling_factors(sampling_factors s) {
 
 /* remplisage du bloc 8*8 de Y de coordonne (origine_x, origine_y) */
 void bloc_Y(uint8_t *Y, int mcu_width, int origine_x, int origine_y, int16_t bloc[64]) {
-    for (int y = 0; y < 8; y++)
-        for (int x = 0; x < 8; x++)
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
             bloc[y * 8 + x] = (int16_t)Y[(origine_y * 8 + y) * mcu_width + (origine_x * 8 + x)];
+        }
+    }
 }
 
 /* remplisage du bloc 8*8 de Cb/Cr de coordonne (origine_x, origine_y) (avec sous-échantillonnage) */
@@ -57,9 +59,11 @@ void bloc_Cb_Cr(uint8_t *Cb_Cr, int mcu_width, int origine_x, int origine_y, int
             int px = (origine_x * 8 + x) * h_factor;
             int py = (origine_y * 8 + y) * v_factor;
             int sum = 0;
-            for (int dy = 0; dy < v_factor; dy++)
-                for (int dx = 0; dx < h_factor; dx++)
+            for (int dy = 0; dy < v_factor; dy++) {
+                for (int dx = 0; dx < h_factor; dx++) {
                     sum += Cb_Cr[(py + dy) * mcu_width + (px + dx)];
+                }
+            }
             bloc[y * 8 + x] = (int16_t)(sum / (h_factor * v_factor));
         }
     }
