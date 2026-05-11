@@ -104,6 +104,59 @@ void write_SOS(FILE *f, uint8_t nb_couleurs, uint8_t iH_DC_Y, uint8_t iH_AC_Y, u
     fwrite(fin, 1, sizeof(fin), f);
 }
 
+void write_SOS_progressif(FILE *f, uint8_t nb_comp, uint8_t scan, uint8_t nb_couleurs, uint8_t SS, uint8_t SE, uint8_t AhAl) {
+
+    uint16_t longueur = 2 + 1 + 2 * nb_comp + 3;
+
+    uint8_t entete[] = {
+        0xFF, 0xDA,
+        (longueur >> 8) & 0xFF, longueur & 0xFF,
+        nb_comp,
+    };
+    fwrite(entete, 1, sizeof(entete), f);
+
+    if (nb_couleurs == 1) {
+        // une seule composante Y
+        uint8_t composantes[] = {0x01, (0 << 4) | 0};
+        fwrite(composantes, 1, sizeof(composantes), f);
+    } else {
+        // trois composantes Y, Cb, Cr
+        if (scan == 0) {
+            uint8_t composantes[] = {
+                0x01, (0 << 4) | 0,
+                0x02, (1 << 4) | 1,
+                0x03, (1 << 4) | 1,
+            };
+            fwrite(composantes, 1, sizeof(composantes), f);
+        } else if (scan == 1) {
+            uint8_t composantes[] = {
+                0x01, (0 << 4) | 0,
+            };
+            fwrite(composantes, 1, sizeof(composantes), f);
+        } else if (scan == 2) {
+            uint8_t composantes[] = {
+                0x03, (1 << 4) | 1,
+            };
+            fwrite(composantes, 1, sizeof(composantes), f);
+        } else if (scan == 3) {
+            uint8_t composantes[] = {
+                0x02, (1 << 4) | 1,
+            };
+            fwrite(composantes, 1, sizeof(composantes), f);
+        } else if (scan == 4) {
+            uint8_t composantes[] = {
+                0x01, (0 << 4) | 0,
+            };
+            fwrite(composantes, 1, sizeof(composantes), f);
+        }
+         
+    }
+
+    // toujours ces 3 octets car mode baseline
+    uint8_t fin[] = {SS, SE, AhAl};
+    fwrite(fin, 1, sizeof(fin), f);
+}
+
 void add_JPEG_entete(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, sampling_factors s) {
     uint8_t fH_Y = s.h[0];
     uint8_t fV_Y = s.v[0];
@@ -135,7 +188,7 @@ void add_JPEG_entete(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_cou
 
     // SOS
     if (nb_couleurs == 1) {
-        write_SOS(f, 1, 0, 0, 0, 0, 0x00, 0x3F, 0x00);
+        write_SOS(f, 1, 0, 0, -1, -1, 0x00, 0x3F, 0x00);
     } else {
         write_SOS(f, 3, 0, 0, 1, 1, 0x00, 0x3F, 0x00);
     }
@@ -161,15 +214,6 @@ void add_JPEG_entete_progressif(FILE *f, uint16_t hauteur, uint16_t largeur, uin
 
     // SOF2
     write_SOF(f, 0xC2, hauteur, largeur, nb_couleurs, fH_Y, fV_Y, fH_Cb, fV_Cb, fH_Cr, fV_Cr);
-
-    // DHT
-    write_DHT(f, 0, 0, htables_nb_symb_per_lengths[0][0], htables_symbols[0][0]); // DC_Y, is_AC = 0, iH = 0        
-    write_DHT(f, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
-    if (nb_couleurs == 3) {
-        write_DHT(f, 0, 1, htables_nb_symb_per_lengths[0][1], htables_symbols[0][1]); // DC_CbCr, is_AC = 0, iH = 1
-        write_DHT(f, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1
-            
-    }
 }
 
 

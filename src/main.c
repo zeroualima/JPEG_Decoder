@@ -131,11 +131,52 @@ int main(int argc, char **argv) {
     int fin[SCANS] = {0, 8, 63, 63, 63};
     add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
     for (int scan = 0; scan < SCANS; scan++) {
-        if (nb_colors == 1) {
-            write_SOS(f_ecrire, 1, 0, 0, 0, 0, debut[scan], fin[scan], 0); // Spectral selection 
-        } else {
-            write_SOS(f_ecrire, 3, 0, 0, 1, 1, debut[scan], fin[scan], 0); // Spectral selection
+
+        // // DHT
+        // write_DHT(f, 0, 0, htables_nb_symb_per_lengths[0][0], htables_symbols[0][0]); // DC_Y, is_AC = 0, iH = 0        
+        // write_DHT(f, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
+        // if (nb_couleurs == 3) {
+        //     write_DHT(f, 0, 1, htables_nb_symb_per_lengths[0][1], htables_symbols[0][1]); // DC_CbCr, is_AC = 0, iH = 1
+        //     write_DHT(f, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1
+        // }
+        if (scan == 0) {
+            write_DHT(f_ecrire, 0, 0, htables_nb_symb_per_lengths[0][0], htables_symbols[0][0]); // DC_Y, is_AC = 0, iH = 0
+            if (nb_colors == 3) {
+                write_DHT(f_ecrire, 0, 1, htables_nb_symb_per_lengths[0][1], htables_symbols[0][1]); // DC_CbCr, is_AC = 0, iH = 1
+                write_SOS_progressif(f_ecrire, 3, scan, nb_colors, debut[scan], fin[scan], 0);
+            } else {
+                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+            }
+        } 
+        
+        else if (scan == 1) {
+            write_DHT(f_ecrire, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
+            write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+        } 
+        
+        else if (scan == 2) {
+            if (nb_colors == 3) {
+                write_DHT(f_ecrire, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1            
+                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+            } else {
+                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+            }
+        } 
+        
+        else if (scan == 3) {
+            if (nb_colors == 3) {
+                write_DHT(f_ecrire, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1
+                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+            } else {
+                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+            }
+        } 
+        
+        else if (scan == 4) {
+            write_DHT(f_ecrire, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
+            write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
         }
+
         for (int i = 0; i < image->mcu_count; i++) {
             fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
             traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
