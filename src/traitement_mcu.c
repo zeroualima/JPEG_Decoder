@@ -1,14 +1,14 @@
 #include "traitement_mcu.h"
 
 /*
-    entrée :    un vecteur "vect_img" de taille "(h1 * 8) * (v1 * 8)"
+    entrée  :   un vecteur "vect_img" de taille "(h1 * 8) * (v1 * 8)"
                 tel que :
                                 |    val    si pgm |
                 vect_img[i] =   |                  |
                                 | [R, G, B] si ppm |
 
 
-    sortie :    un vecteur "mcu_flow" de taille "h1 * v1 + h2 * v2 + h3 * v3"
+    sortie  :   un vecteur "mcu_flow" de taille "h1 * v1 + h2 * v2 + h3 * v3"
                 tel que "mcu_flow[k] = b"
                 où "b" bloc contient :
                     1. nature du bloc 8 * 8 pixel (Y ou Cb ou Cr)
@@ -40,7 +40,7 @@
 
     -> constante 4 : (colors)
 
-        if (is_gray) { colors = 0; }
+        if (ppm)     { colors = 0; }
         else         { colors = 1; }
 */
 

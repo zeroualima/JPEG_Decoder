@@ -45,6 +45,9 @@ void flush_bits(FILE *f) {
         if (buffer == 0xFF)
             fwrite("\x00", 1, 1, f);
     }
+
+    buffer = 0;
+    bit_count = 0;
 }
 
 Coeff_Huff magnitude(int val) {
@@ -200,7 +203,8 @@ void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb
         for (int i = debut; i < fin + 1; i++) { // Detect when all comings are zeros
             if (coeffs[i] == 0) {
                 cpt_zeros++;
-                if (i == 63) { // Il faut ecrire EOB
+                /* !!!! attention "i" s'arret à "fin" et non pas à 63 */
+                if (i == fin) { // Il faut ecrire EOB
                     Chemin_Huff eob;
                     if (is_Y) {
                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);

@@ -11,38 +11,34 @@
 int main(int argc, char **argv) {
     char *infile = NULL;
     char *outfile_arg = NULL;
-    char *sampling_arg = NULL;
+
+    char *sample_arg = NULL;
 
     for (int i = 1; i < argc; i++) {
-        if (strncmp(argv[i], "--help", 6) == 0) {
-            printf("Usage: %s [--outfile=<output.jpg>] [--sample=h1xv1,h2xv2,h3xv3] <input>\n", argv[0]);
-            return 0;
+        if (strcmp(argv[i], "--help") == 0) {
+            printf("Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
+            exit(0);
         } else if (strncmp(argv[i], "--outfile=", 10) == 0) {
             outfile_arg = argv[i] + 10;
         } else if (strncmp(argv[i], "--sample=", 9) == 0) {
-            sampling_arg = argv[i] + 9;
+            sample_arg = argv[i] + 9;
         } else {
             infile = argv[i];
         }
     }
 
     if (!infile) {
-        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=h1xv1,h2xv2,h3xv3] <input>\n", argv[0]);
+        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
         exit(1);
     }
 
-    FILE *f_lire = fopen(infile, "rb");
-    if (!f_lire) {
-        perror("fopen lecture");
-        exit(1);
-    }
+   
 
     char *slash = strrchr(infile, '/');
     char *filename = slash ? slash + 1 : infile;
     char *dot = strrchr(filename, '.');
     if (!dot) {
         fprintf(stderr, "Erreur : pas d'extension trouvée dans '%s'\n", infile);
-        fclose(f_lire);
         exit(1);
     }
     int nb_colors = (strcmp(dot, ".pgm") == 0) ? 1 : 3;
@@ -62,23 +58,28 @@ int main(int argc, char **argv) {
     FILE *f_ecrire = fopen(output_path, "wb");
     if (!f_ecrire) {
         perror("fopen ecriture");
-        fclose(f_lire);
         if (output_path_allocated) free(output_path);
         exit(1);
     }
-    if (output_path_allocated) 
-        free(output_path);
+    if (output_path_allocated) free(output_path);
 
-    // Sampling
+    /* SAMPLING */
     sampling_factors s;
-    if (nb_colors == 1) {
+    if (sample_arg) {
+        int h0, v0, h1, v1, h2, v2;
+        if (sscanf(sample_arg, "%dx%d,%dx%d,%dx%d", &h0, &v0, &h1, &v1, &h2, &v2) != 6) {
+            fprintf(stderr, "Usage: --sample=HxV,HxV,HxV\n");
+
+            fclose(f_ecrire);
+            exit(1);
+        }
+        s.h[0] = h0; s.v[0] = v0;
+        s.h[1] = h1; s.v[1] = v1;
+        s.h[2] = h2; s.v[2] = v2;
+    } else if (nb_colors == 1) {
         s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
         s.h[2] = 1; s.v[2] = 1;
-    } else if (sampling_arg) {
-        s.h[0] = sampling_arg[0] - '0'; s.v[0] = sampling_arg[2] - '0';
-        s.h[1] = sampling_arg[4] - '0'; s.v[1] = sampling_arg[6] - '0';
-        s.h[2] = sampling_arg[8] - '0'; s.v[2] = sampling_arg[10] - '0';
     } else {
         s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
@@ -86,12 +87,12 @@ int main(int argc, char **argv) {
     }
     test_sampling_factors(s);
 
-    // Lecture
+    /* LECTURE */
     
     Image *image = malloc(sizeof(Image));
     init_image(image, infile, s);
 
-    // Ecriture
+    /* ECRITURE */
     int colors = (nb_colors == 1) ? 0 : 1;
 
     int blocs_Y  = s.h[0] * s.v[0];
@@ -118,71 +119,45 @@ int main(int argc, char **argv) {
     struct timespec t_start, t_end;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
 
-    // add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s);
-    // for (int i = 0; i < image->mcu_count; i++) {
-    //     fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
-    //     traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
-    //     add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+    int mcu_rows = image->ph / (8 * s.v[0]);
+    int mcu_cols = image->pw / (8 * s.h[0]);
+
+    // add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s); 
+    // for (int i = 0; i < mcu_rows; i++) {
+    //     for (int j = 0; j < mcu_cols; j++) {
+    //         int pixel_row = i * 8 * s.v[0];
+    //         int pixel_col = j * 8 * s.h[0];
+    //         long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+    //         fill_mcu(image, mcu, s, mcu_starting_position);
+    //         traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+    //         add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+    //     }
     // }
     // add_JPEG_end(f_ecrire);
 
     #define SCANS 5
-    int debut[SCANS] = {0, 1, 1, 1, 9};
-    int fin[SCANS] = {0, 8, 63, 63, 63};
+    int debut[SCANS] = {0, 1, 1, 1, 10};
+    int fin[SCANS] = {0, 9, 63, 63, 63};
     add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
     for (int scan = 0; scan < SCANS; scan++) {
 
-        // // DHT
-        // write_DHT(f, 0, 0, htables_nb_symb_per_lengths[0][0], htables_symbols[0][0]); // DC_Y, is_AC = 0, iH = 0        
-        // write_DHT(f, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
-        // if (nb_couleurs == 3) {
-        //     write_DHT(f, 0, 1, htables_nb_symb_per_lengths[0][1], htables_symbols[0][1]); // DC_CbCr, is_AC = 0, iH = 1
-        //     write_DHT(f, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1
-        // }
-        if (scan == 0) {
-            write_DHT(f_ecrire, 0, 0, htables_nb_symb_per_lengths[0][0], htables_symbols[0][0]); // DC_Y, is_AC = 0, iH = 0
-            if (nb_colors == 3) {
-                write_DHT(f_ecrire, 0, 1, htables_nb_symb_per_lengths[0][1], htables_symbols[0][1]); // DC_CbCr, is_AC = 0, iH = 1
-                write_SOS_progressif(f_ecrire, 3, scan, nb_colors, debut[scan], fin[scan], 0);
-            } else {
-                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
+        /* ecriture de DHT et SOS en fct de "scan" */
+        write_DHT_SOS_progressif(f_ecrire, scan, nb_colors, debut[scan], fin[scan]);
+
+        /* traitement de l'MCU + ecriture de bitstream en fct dee "scan" */
+        for (int i = 0; i < mcu_rows; i++) {
+            for (int j = 0; j < mcu_cols; j++) {
+                int pixel_row = i * 8 * s.v[0];
+                int pixel_col = j * 8 * s.h[0];
+                long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+                fill_mcu(image, mcu, s, mcu_starting_position);
+                traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+                add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan);
             }
-        } 
-        
-        else if (scan == 1) {
-            write_DHT(f_ecrire, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
-            write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
-        } 
-        
-        else if (scan == 2) {
-            if (nb_colors == 3) {
-                write_DHT(f_ecrire, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1            
-                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
-            } else {
-                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
-            }
-        } 
-        
-        else if (scan == 3) {
-            if (nb_colors == 3) {
-                write_DHT(f_ecrire, 1, 1, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]); // AC_CbCr, is_AC = 1, iH = 1
-                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
-            } else {
-                write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
-            }
-        } 
-        
-        else if (scan == 4) {
-            write_DHT(f_ecrire, 1, 0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]); // AC_Y, is_AC = 1, iH = 0
-            write_SOS_progressif(f_ecrire, 1, scan, nb_colors, debut[scan], fin[scan], 0);
         }
 
-        for (int i = 0; i < image->mcu_count; i++) {
-            fill_mcu(image, mcu, s, (image->mcus_starting_position)[i]);
-            traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
-            add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan + 1);
-        }
-        add_JPEG_end(f_ecrire);
+        /* on ecrit "EOI" que vers la fin */
+        add_JPEG_end_progressif(f_ecrire, scan, SCANS);
     }
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);
@@ -192,18 +167,11 @@ int main(int argc, char **argv) {
     free(tmp_ycbcr.Y); free(tmp_ycbcr.Cb); free(tmp_ycbcr.Cr);
     free(tmp_blocs);
 
-    free(mcu->data);
-    free(mcu);
-
-    free(image->row_buffer);
-    free(image->current_mcu.data);
-    free(image->mcus_starting_position);
-    free(image);
+    free_all(image, mcu);
 
     free(cos_table);
     free(blocs);
 
-    fclose(f_lire);
+  
     fclose(f_ecrire);
-    return 0;
 }
