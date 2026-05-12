@@ -48,7 +48,11 @@ void test_position(void) {
 
     zz_bloc(identite, output);
 
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(zzi,output,64);
+    /* 
+        puisque on a change "uint8_t" en "int16_t" 
+        alors on change aussi "TEST_ASSERT_EQUAL_UINT8_ARRAY" en "TEST_ASSERT_EQUAL_INT16_ARRAY"
+    */
+    TEST_ASSERT_EQUAL_INT16_ARRAY(zzi,output,64);
 }
 
 
