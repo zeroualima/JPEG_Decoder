@@ -1,80 +1,210 @@
-# État de l'encodeur JPEG
+# Encodeur JPEG | JPEG ENCODER
 
 ![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
 
 [Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
 
-# Notre encodeur JPEG à nous
+Ce projet implémente un encodeur JPEG from scratch en C. Il prend en entrée des images PPM (couleur) ou PGM (niveaux de gris) et produit des fichiers JPEG valides conformes au standard JFIF.
 
-Bienvenue sur la page d'accueil de _votre_ projet JPEG, un grand espace de liberté, sous le regard bienveillant de vos enseignants préférés.
-Le sujet sera disponible dès lundi à l'adresse suivante : [https://formationc.pages.ensimag.fr/projet/jpeg/jpeg/](https://formationc.pages.ensimag.fr/projet/jpeg/jpeg/).
+---
 
-Vous pouvez reprendre cette page d'accueil comme bon vous semble, mais elle devra au moins comporter les infos suivantes **avant la fin de la première semaine** :
+## Pipeline de compression
 
-1. des informations sur le découpage des fonctionnalités du projet en modules, en spécifiant les données en entrée et sortie de chaque étape ;
-2. (au moins) un dessin des structures de données de votre projet (format libre, ça peut être une photo d'un dessin manuscrit par exemple) ;
-3. une répartition des tâches au sein de votre équipe de développement, comportant une estimation du temps consacré à chacune d'elle (là encore, format libre, du truc cracra fait à la main, au joli Gantt chart).
+Le traitement se fait MCU par MCU (Minimum Coded Unit). Voici les étapes dans l'ordre :
 
-Rajouter **régulièrement** des informations sur l'avancement de votre projet est aussi **une très bonne idée** (prendre 10 min tous les trois chaque matin pour résumer ce qui a été fait la veille, établir un plan d'action pour la journée qui commence et reporter tout ça ici, par exemple).
+```
+<Fichier>.ppm/pgm : gestion dans  main.c
+      │
+      ▼
+┌─────────────────────┐
+│  Parsing & padding  │  parser_resize.c
+│  Lecture de l'image │  Lecture ligne par ligne, padding à des multiples de 8*v[0] et 8*h[0]
+└─────────┬───────────┘
+          │  rgb_mcu  (pixels bruts par MCU)
+          ▼
+┌─────────────────────┐
+│  RGB → YCbCr        │  rgb_ycbcr.c    
+└─────────┬───────────┘
+          │  ycbcr_mcu  (composantes Y, Cb, Cr séparées)
+          ▼
+┌─────────────────────┐
+│  Découpage en blocs │  mcu_compression.c
+│  + sous-échant.     │  Blocs 8*8, sous-echantillonnage Cb/Cr selon les facteurs H*V 
+└─────────┬───────────┘
+          │  bloc[]  (tableau de blocs 8*8 de type Y, Cb ou Cr)
+          ▼
+┌─────────────────────┐
+│  DCT 2D             │  dct.c
+│  (séparable 1D)     │  Transformee en cosinus discrete sur chaque bloc 8*8
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Scan zig-zag       │  zz.c
+│                     │  Reordonnancement zigzag
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Quantification     │  quantification.c
+│                     │  Tables Q distinctes pour Y et Cb/Cr
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Codage RLE/Huffman │  codage_rle.c + htables.c
+│                     │  Codage DC différentiel, AC run-length + tables Huffman JPEG standard
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Écriture JPEG      │  make_JPEG.c
+│                     │  ecriture des  marqueurs (SOI, APP0, DQT, SOF0, DHT, SOS, Donnees brutes, EOI)
+└─────────────────────┘
+          │
+          ▼
+    <Fichier>.jpg    : ohhh finalement!!
 
-# Proposition de CI pour les élèves
+```
 
-## Makefile
-* Gère la génération de code : exécutable, debug  et tests
-* Inclusion de sanitize par défaut (au détriment de Valgrind)
-* Gère la couverture de code
-* Intègre une cible pour lancer les tests en local
-* Intègre une cible perf pour faire de l'analyse de performance
+---
 
-## Unity pour faire des tests unitaires
-* Fonctionnement simplifié à l'extrême et ultra portable
-* [Le guide de démarrage](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityGettingStartedGuide.md)
-* [La liste des assertions possibles](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsReference.md)
-* exemples fournis dans tests/test_\*.c : à vous d'en ajouter et de les complèter
+## Structures de données
 
-## Pytest pour faire les tests d'intégrations
-### Pourquoi ? 
-Pytest, c'est un des framework de test python les plus utilisés. 
+Les structures principales qui circulent dans le pipeline :
 
-### Où
-`tests/test_all.py`
+```c
+/* Facteurs de sous-échantillonnage pour les 3 composantes (Y, Cb, Cr) */
+typedef struct {
+    uint8_t h[3];   // facteurs horizontaux
+    uint8_t v[3];   // facteurs verticaux
+} sampling_factors;
 
-### Contenu
-* Intégration des tests unity pour avoir un résumé de tests uniformes 
-* Vérification fonctionnelle organisée en catégorie ("cli","gris","couleur"..) pour vérifier que le programme fonctionne et produit un fichier comme il devrait en validant la qualité d'image générée selon 3 métriques 
-	* SSIM : une métrique de proximité
-	Comparaison réalisée par rapport à l'outil convert
-	* PAE : une métrique (erreur absolu pic) pour détecter les pixels foireux
-	* AE : une métrique complémentaire pour détecter les images foireuses (plus de 2% de pixels à plus de 10% de l'original).
-	Pour info, `convert` reste en dessous de 0,1% sur cette métrique !
-* test de performance sur les images "couleur" via callgrind et normalisation selon la métrique (instructions/pixel).
-C'est une métrique imparfaite qui ne capturé ni l'ILP du processeur ni les défauts de cache. Mais dans un parc info hétérogène (intra-Ensimag et PC étudiant), le temps n'est pas une métrique de comparaison fiable. Inst/pixel est indépendant de la machine et invariant selon l'image.
+/* Représente l'image source avec ses métadonnées et un buffer glissant pour la lecture */
+typedef struct {
+    int w, h;               // dimensions originales
+    int pw, ph;             // dimensions après padding (multiples de 8*h[0] et 8*v[0])
+    int colors;             // 1 = PGM, 3 = PPM
+    uint8_t *row_buffer;    // fenêtre glissante de mcu_height lignes de pixels
+    long header_offset;     // offset du premier octet de pixel dans le fichier
+    FILE *f;
+    // ...
+} Image;
 
-* Test sur la mémoire  : pile, tas, sections importantes et RSS
+/* MCU brute en RGB — un tableau de pixels, chaque pixel = [R,G,B] ou [Y] */
+typedef struct { RGB *data; } rgb_mcu;
 
-### Fonctionnalités
-* Génération d'une synthèse dans le terminal 
-* Génération d'un xml pour une intégration dans la CI gitlab
+/* MCU après conversion, composantes séparées */
+typedef struct {
+    uint8_t *Y, *Cb, *Cr;
+} ycbcr_mcu;
 
-## CI Gitlab
-* Pipeline à 4 étages :
-	* étage de compilation 
-	* étage de vérif rapide (tests unitaires et CLI) pour éviter les tests inutiles
-	* étage d'évaluation pour faire :
-		* les tests d'intégration
-		* la couverture de code
-		* l'évaluation de performance
-		* l'évaluation mémoire
-	* étage de déploiement pour faire la page de résultats
-* Syntèse des tests : visible depuis build:jobs ou en cliquant sur le résultat du job
-* Intégration de la couverture de code :
-	* Résumé et suivi visible dans build:jobs
-	* Badge utilisable dans le README  : ![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
-	* Page de couverture consultable dans depuis le tableau de bord 
-* Génération d'un [tableau de bord incluant les stats(qualité, performance) par scénario, les infos mémoires, un lien vers les rapports et le profilage de Biiiiiiig](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
+/* Un bloc 8*8 de coefficients, avec son type pour savoir quelle table Huffman utiliser */
+typedef struct {
+    int16_t data[64];
+    bloc_type type;   // Y, Cb ou Cr
+} bloc;
+```
 
-# Liens utiles
+---
 
-- Bien former ses messages de commits : [https://www.conventionalcommits.org/en/v1.0.0/](https://www.conventionalcommits.org/en/v1.0.0/) ;
-- Besoin de prendre l'air ? Le [Mont Rachais](https://fr.wikipedia.org/wiki/Mont_Rachais) est accessible à pieds depuis la salle E301 !
-- Un peu juste sur le projet à quelques heures de la deadline ? Le [Montrachet](https://www.vinatis.com/achat-vin-puligny-montrachet) peut faire passer l'envie à vos profs de vous mettre une tôle !
+## Compilation
+
+### Prérequis
+
+- GCC (C99)
+- `make`
+- Python 3 + pip (tests d'intégration)
+- `gcovr` (couverture)
+- `valgrind` + `kcachegrind` (profilage, optionnel)
+
+### Cibles make
+
+| Commande          | Ce que ça fait                                                   |
+|-------------------|------------------------------------------------------------------|
+| `make all`        | Compile l'encodeur + les tests (ASan + couverture activés)       |
+| `make debug`      | Recompile proprement en mode debug (`-Og`, ASan)                 |
+| `make perf`       | Recompile en `-O3` sans instrumentation pour mesurer les perfs   |
+| `make tests`      | Lance toute la suite de tests (Unity + pytest)                   |
+| `make couverture` | Tests + rapport de couverture HTML                               |
+| `make profilage`  | Callgrind sur l'image de test + ouverture dans kcachegrind       |
+| `make clean`      | Supprime les binaires                                            |
+| `make realclean`  | Nettoyage complet avant commit                                   |
+
+```bash
+make all    # compilation standard
+make debug  # si vous voulez déboguer avec gdb
+```
+
+---
+
+## Utilisation
+
+```
+./ppm2jpeg [--outfile=<fichier.jpg>] [--sample=H1xV1,H2xV2,H3xV3] <input.ppm|input.pgm>
+```
+
+| Option                    | Description                                                        |
+|---------------------------|--------------------------------------------------------------------|
+| `--outfile=<fichier.jpg>` | Fichier de sortie (par défaut : `out/<nom>.jpg`)                   |
+| `--sample=HxV,HxV,HxV`   | Facteurs de sous-échantillonnage pour Y, Cb, Cr                    |
+
+```bash
+# Couleur sans sous-échantillonnage
+./ppm2jpeg images/etu/shaun_the_sheep.ppm
+
+# 4:2:0 avec fichier de sortie explicite
+./ppm2jpeg --sample=2x2,1x1,1x1 --outfile=out/result.jpg images/etu/horizontal.ppm
+
+# Niveaux de gris
+./ppm2jpeg images/etu/invader.pgm
+```
+
+---
+
+## Sous-échantillonnage chrominance
+
+Le flag `--sample=H0xV0,H1xV1,H2xV2` définit les facteurs pour Y, Cb et Cr. Une MCU contient alors `H0*V0` blocs Y, `H1*V1` blocs Cb et `H2*V2` blocs Cr.
+quelque modes conseillees:
+
+| Mode  | `--sample`     | Remarque                                   |
+|-------|----------------|--------------------------------------------|
+| 4:4:4 | `1x1,1x1,1x1` | Pas de sous-échantillonnage (défaut)        |
+| 4:2:2 | `2x1,1x1,1x1` | Sous-échantillonnage horizontal seulement   |
+| 4:2:0 | `2x2,1x1,1x1` | Le plus courant, horizontal + vertical      |
+| 4:1:1 | `4x1,1x1,1x1` | Sous-échantillonnage horizontal fort        |
+
+
+---
+
+## Tests
+
+### Unitaires (Unity)
+
+```bash
+make all
+./tests/test_dct.bin
+./tests/test_zz.bin
+```
+
+### Intégration (pytest)
+
+```bash
+make tests
+```
+
+### Couverture
+
+```bash
+make couverture
+```
+
+
+---
+## Répartition des tâches
+
+| Membre                      | Modules                                                                                                        |
+|-----------------------------|----------------------------------------------------------------------------------------------------------------|
+| **Saad Boubekri**           | Parseur PPM/PGM (de l'image complete + ligne par ligne des MCU), padding, buffer glissant, interface CLI (`parser_resize.c`, `main.c`)                        |
+| **Ayman Boulaich**          | RGB→YCbCr, DCT (naïve + optimisée 1D séparable), zig-zag, quantification, découpage MCU et sampling factors (`rgb_ycbcr.c`, `dct.c`, `zz.c`, `quantification.c`, `mcu_compression.c`) |
+| **Mohammed Amine Zerouali** | Codage RLE et de Huffman des AC/DC, écriture du bitstream et des marqueurs JPEG (`codage_rle.c`, `make_JPEG.c`) |
