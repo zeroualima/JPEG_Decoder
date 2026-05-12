@@ -192,47 +192,47 @@ void chaine_Huff_vect(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predi
     }    
 }
 
-
-void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predicateur, int debut, int fin) {
-    if (debut == 0 && fin == 0) {
-        // Scan 1, Mode Progressif
-        chaine_Huff_coeff(f, coeffs[0], -1, true, is_Y, is_Cb, predicateur);
-    } else if (fin != 0) {
-        // Autres Scans (#?)
-        int cpt_zeros = 0;
-        for (int i = debut; i < fin + 1; i++) { // Detect when all comings are zeros
-            if (coeffs[i] == 0) {
-                cpt_zeros++;
-                /* !!!! attention "i" s'arret à "fin" et non pas à 63 */
-                if (i == fin) { // Il faut ecrire EOB
-                    Chemin_Huff eob;
-                    if (is_Y) {
-                        eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
-                    } else if (is_Cb) {
-                        eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
-                    } else {
-                        eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
-                    }
-                    write_bits(f, eob.chemin, eob.profondeur);
-                }
-            } else {
-                // ZRL : émettre 0xF0 pour chaque groupe de 16 zéros
-                while (cpt_zeros >= 16) {
-                    Chemin_Huff zrl;
-                    if (is_Y)
-                        zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
-                    else if (is_Cb)
-                        zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
-                    else
-                        zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
-                    write_bits(f, zrl.chemin, zrl.profondeur);
-                    cpt_zeros -= 16;
-                }
-                chaine_Huff_coeff(f, coeffs[i], cpt_zeros, false, is_Y, is_Cb, -1);
-                cpt_zeros = 0;
-            }
-        }
-    } else {
-        fprintf(stderr, "UNSUPPORTED COMBINATION OF PARAMETERS");
-    }
-}
+/* version adaptée pour le mode progressif */
+// void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predicateur, int debut, int fin) {
+//     if (debut == 0 && fin == 0) {
+//         // Scan 1, Mode Progressif
+//         chaine_Huff_coeff(f, coeffs[0], -1, true, is_Y, is_Cb, predicateur);
+//     } else if (fin != 0) {
+//         // Autres Scans (#?)
+//         int cpt_zeros = 0;
+//         for (int i = debut; i < fin + 1; i++) { // Detect when all comings are zeros
+//             if (coeffs[i] == 0) {
+//                 cpt_zeros++;
+//                 /* !!!! attention "i" s'arret à "fin" et non pas à 63 */
+//                 if (i == fin) { // Il faut ecrire EOB
+//                     Chemin_Huff eob;
+//                     if (is_Y) {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
+//                     } else if (is_Cb) {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
+//                     } else {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
+//                     }
+//                     write_bits(f, eob.chemin, eob.profondeur);
+//                 }
+//             } else {
+//                 // ZRL : émettre 0xF0 pour chaque groupe de 16 zéros
+//                 while (cpt_zeros >= 16) {
+//                     Chemin_Huff zrl;
+//                     if (is_Y)
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
+//                     else if (is_Cb)
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
+//                     else
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
+//                     write_bits(f, zrl.chemin, zrl.profondeur);
+//                     cpt_zeros -= 16;
+//                 }
+//                 chaine_Huff_coeff(f, coeffs[i], cpt_zeros, false, is_Y, is_Cb, -1);
+//                 cpt_zeros = 0;
+//             }
+//         }
+//     } else {
+//         fprintf(stderr, "UNSUPPORTED COMBINATION OF PARAMETERS");
+//     }
+// }
