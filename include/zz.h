@@ -1,8 +1,6 @@
 #ifndef _ZZ_H_
 #define _ZZ_H_
 
-#include <stdint.h>
-
 #include "dct.h"
 
 // // Un prototype pour une ZZ qui travaille en place
@@ -24,8 +22,7 @@ static const int zigzag[64] = {
 };
 
 /* prototypres */
-void zz(uint8_t *block);
 void zz_bloc(int16_t *input, int16_t *output);
-void zz_application(bloc *dct_flow, bloc *zz_flow, int nb_blocs);
+void zz_application(bloc *dct_flow, bloc *zz_flow, int nbr_blocs);
 
 #endif /* _ZZ_H_ */

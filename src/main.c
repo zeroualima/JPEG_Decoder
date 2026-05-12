@@ -1,201 +1,177 @@
-#include <stdlib.h>
-#include "htables.h"
-#include "qtables.h"
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
-#include <stdbool.h>
+#include <string.h>
+#include <time.h>
+#include <syscall.h>
 
 #include "parser_resize.h"
-#include "rgb_ycbcr.h"
-#include "mcu_compression.h"
+#include "traitement_mcu.h"
 #include "make_JPEG.h"
-#include "dct.h"
-#include "zz.h"
-#include "quantification.h"
 
+int main(int argc, char **argv) {
+    char *infile = NULL;
+    char *outfile_arg = NULL;
 
-int main(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
+    char *sample_arg = NULL;
 
-    //
-    // if (argc != 3) {
-    //     fprintf(stderr, "Usage: %s <file>\n", argv[0]);
-    // } 
-    // FILE *f_lire = fopen(argv[1], "rb");
-    // if (!f_lire) {
-    //     perror("fopen lecture");
-    //     exit(1);
-    // }
-    // FILE *f_ecrire = fopen(argv[2], "wb");
-    // if (!f_ecrire) {
-    //     perror("fopen ecriture");
-    //     fclose(f_lire);  // fermer le premier avant de quitter
-    //     exit(1);
-    // }
-    //
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0) {
+            printf("Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
+            exit(0);
+        } else if (strncmp(argv[i], "--outfile=", 10) == 0) {
+            outfile_arg = argv[i] + 10;
+        } else if (strncmp(argv[i], "--sample=", 9) == 0) {
+            sample_arg = argv[i] + 9;
+        } else {
+            infile = argv[i];
+        }
+    }
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file>\n", argv[0]);
+    if (!infile) {
+        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
         exit(1);
     }
 
-    FILE *f_lire = fopen(argv[1], "rb");
-    if (!f_lire) {
-        perror("fopen lecture");
-        exit(1);
-    }
+   
 
-    // Find the filename after the last '/'
-    char *slash = strrchr(argv[1], '/');
-    char *filename = slash ? slash + 1 : argv[1];
-
-    // Find the extension (last '.')
+    char *slash = strrchr(infile, '/');
+    char *filename = slash ? slash + 1 : infile;
     char *dot = strrchr(filename, '.');
     if (!dot) {
-        fprintf(stderr, "Erreur : pas d'extension trouvée dans '%s'\n", argv[1]);
-        fclose(f_lire);
+        fprintf(stderr, "Erreur : pas d'extension trouvée dans '%s'\n", infile);
         exit(1);
     }
+    int nb_colors = (strcmp(dot, ".pgm") == 0) ? 1 : 3;
 
-    // Base name length (without extension)
-    int base_len = dot - filename;
-
-    // Build "out/<basename>.jpg\0"  →  4 + base_len + 4 + 1
-    int output_len = 4 + base_len + 4 + 1;
-    char *output_path = malloc(output_len);
-    if (!output_path) {
-        perror("malloc");
-        fclose(f_lire);
-        exit(1);
+    char *output_path;
+    int output_path_allocated = 0;
+    if (outfile_arg) {
+        output_path = outfile_arg;
+    } else {
+        int base_len = dot - filename;
+        int output_len = 4 + base_len + 4 + 1;
+        output_path = malloc(output_len);
+        snprintf(output_path, output_len, "out/%.*s.jpg", base_len, filename);
+        output_path_allocated = 1;
     }
-    snprintf(output_path, output_len, "out/%.*s.jpg", base_len, filename);
 
-    FILE *f_ecrire = fopen(output_path, "wb");  // ← output_path, not argv[1]
+    FILE *f_ecrire = fopen(output_path, "wb");
     if (!f_ecrire) {
         perror("fopen ecriture");
-        fclose(f_lire);
-        free(output_path);
+        if (output_path_allocated) free(output_path);
         exit(1);
     }
-    free(output_path);
+    if (output_path_allocated) free(output_path);
 
-/* ===================== LECTURE ===================== */
-    printf("lecture image\n");
-    Image *image = malloc(sizeof(Image));
-    read_file(f_lire, image);
-    printf("Image %dx%d colors=%d\n", image->width, image->height, image->colors);
-
-
-/* ===================== SAMPLING ===================== */
+    /* SAMPLING */
     sampling_factors s;
-    if (image->colors == 1) {
+    if (sample_arg) {
+        int h0, v0, h1, v1, h2, v2;
+        if (sscanf(sample_arg, "%dx%d,%dx%d,%dx%d", &h0, &v0, &h1, &v1, &h2, &v2) != 6) {
+            fprintf(stderr, "Usage: --sample=HxV,HxV,HxV\n");
+
+            fclose(f_ecrire);
+            exit(1);
+        }
+        s.h[0] = h0; s.v[0] = v0;
+        s.h[1] = h1; s.v[1] = v1;
+        s.h[2] = h2; s.v[2] = v2;
+    } else if (nb_colors == 1) {
         s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
         s.h[2] = 1; s.v[2] = 1;
     } else {
-        s.h[0] = 2; s.v[0] = 2;
+        s.h[0] = 1; s.v[0] = 1;
         s.h[1] = 1; s.v[1] = 1;
         s.h[2] = 1; s.v[2] = 1;
     }
     test_sampling_factors(s);
-    Image *img = malloc(sizeof(Image));
-    resize(image, img, s);
 
-/* ===================== YCBCR ===================== */
-    int nb_pixels = img->width * img->height;
+    /* LECTURE */
+    
+    Image *image = malloc(sizeof(Image));
+    init_image(image, infile, s);
 
-    ycbcr img_yc;
-    img_yc.width = img->width;
-    img_yc.height = img->height;
-    img_yc.colors = img->colors;
+    /* ECRITURE */
+    int colors = (nb_colors == 1) ? 0 : 1;
 
-    img_yc.Y  = malloc(nb_pixels);
-    img_yc.Cb = malloc(nb_pixels);
-    img_yc.Cr = malloc(nb_pixels);
-
-    RGB_2_YCbCr(img, &img_yc);
-
-/* ===================== MCU ===================== */
-    printf("MCU compression\n");
-
-    int nb_mcu = nbr_mcu(img_yc.width, img_yc.height, s);
-    mcu *mcus = malloc(nb_mcu * sizeof(mcu));
-    mcu_compresssion(&img_yc, mcus, s);
-
-/* ===================== FLUX MCU ===================== */
     int blocs_Y  = s.h[0] * s.v[0];
     int blocs_Cb = s.h[1] * s.v[1];
     int blocs_Cr = s.h[2] * s.v[2];
 
-    int blocs_par_mcu;
-    if (img_yc.colors == 0) {
-        blocs_par_mcu = blocs_Y;
-    } else {
-        blocs_par_mcu = blocs_Y + blocs_Cb + blocs_Cr;
-    }
+    int nbr_bloc_mcu = (colors == 0) ? blocs_Y : blocs_Y + blocs_Cb + blocs_Cr;
 
-    printf("nbr_mcu/nbr_bloc_mcu = %d/%d\n", nb_mcu, blocs_par_mcu);
+    rgb_mcu *mcu = malloc(sizeof(rgb_mcu));
+    init_mcu(mcu, s);
 
-    int nb_blocs = nb_mcu * blocs_par_mcu;
-
-    printf("DEBUG : nb_mcu=%d blocs_par_mcu=%d nb_blocs=%d sizeof(bloc)=%zu\n", nb_mcu, blocs_par_mcu, nb_blocs, sizeof(bloc));
-        
-    bloc *mcu_flow = malloc(nb_blocs * sizeof(bloc));
-
-    blocs_writing(mcus, mcu_flow, nb_mcu, s, img_yc.colors);
-
-    free(mcus);
-    free(img_yc.Y);
-    free(img_yc.Cb);
-    free(img_yc.Cr);
-
-/* ===================== DCT ===================== */
-    printf("DCT\n");
-
-    double cos_table[64];
+    double *cos_table = malloc(64 * sizeof(double));
     cos_init(cos_table);
 
-    bloc *dct_flow = malloc(nb_blocs * sizeof(bloc));
-    dct_application(mcu_flow, dct_flow, nb_blocs, cos_table);
-    free(mcu_flow);
+    bloc *blocs = malloc(sizeof(bloc) * nbr_bloc_mcu);
 
-/* ===================== ZIGZAG ===================== */
-    printf("Zig-Zag\n");
-    bloc *zz_flow = malloc(nb_blocs * sizeof(bloc));
-    zz_application(dct_flow, zz_flow, nb_blocs);
-    free(dct_flow);
+    int mcu_pixels = s.h[0] * s.v[0] * 64;
+    ycbcr_mcu tmp_ycbcr;
+    tmp_ycbcr.Y  = malloc(mcu_pixels);
+    tmp_ycbcr.Cb = malloc(mcu_pixels);
+    tmp_ycbcr.Cr = malloc(mcu_pixels);
+    bloc *tmp_blocs = malloc(nbr_bloc_mcu * sizeof(bloc));
 
-/* ===================== QUANTIFICATION ===================== */
-    printf("Quantification\n");
-    bloc *q_flow = malloc(nb_blocs * sizeof(bloc));
-    for (int b = 0; b < nb_blocs; b++) {
+    struct timespec t_start, t_end;
+    clock_gettime(CLOCK_MONOTONIC, &t_start);
 
-        quantification_bloc(
-            zz_flow[b].data,
-            q_flow[b].data,
-            zz_flow[b].type
-        );
+    int mcu_rows = image->ph / (8 * s.v[0]);
+    int mcu_cols = image->pw / (8 * s.h[0]);
 
-        q_flow[b].type = zz_flow[b].type;
+    add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s); 
+    for (int i = 0; i < mcu_rows; i++) {
+        for (int j = 0; j < mcu_cols; j++) {
+            int pixel_row = i * 8 * s.v[0];
+            int pixel_col = j * 8 * s.h[0];
+            long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+            fill_mcu(image, mcu, s, mcu_starting_position);
+            traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+            add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+        }
     }
-    free(zz_flow);
+    add_JPEG_end(f_ecrire);
 
-/* ===================== ECRITURE (EN-TETE + HUFFMANN BITSTREAM) ===================== */
-    uint16_t hauteur = image->height;
-    uint16_t largeur = image->width;
-    uint8_t nb_couleurs = img->colors;
+    // #define SCANS 5
+    // int debut[SCANS] = {0, 1, 1, 1, 10};
+    // int fin[SCANS] = {0, 9, 63, 63, 63};
+    // add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
+    // for (int scan = 0; scan < SCANS; scan++) {
 
-    printf("%d %d\n", hauteur, largeur);
-    
-    make_JPEG(f_ecrire, hauteur, largeur, nb_couleurs, s, nb_blocs, q_flow);
+    //     /* ecriture de DHT et SOS en fct de "scan" */
+    //     write_DHT_SOS_progressif(f_ecrire, scan, nb_colors, debut[scan], fin[scan]);
 
-    free(q_flow);
-    free(image->data);
-    free(image);
-    free(img->data);
-    free(img);
+    //     /* traitement de l'MCU + ecriture de bitstream en fct dee "scan" */
+    //     for (int i = 0; i < mcu_rows; i++) {
+    //         for (int j = 0; j < mcu_cols; j++) {
+    //             int pixel_row = i * 8 * s.v[0];
+    //             int pixel_col = j * 8 * s.h[0];
+    //             long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+    //             fill_mcu(image, mcu, s, mcu_starting_position);
+    //             traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+    //             add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan);
+    //         }
+    //     }
 
-    //
-    return EXIT_SUCCESS;
+    //     /* on ecrit "EOI" que vers la fin */
+    //     add_JPEG_end_progressif(f_ecrire, scan, SCANS);
+    // }
+
+    clock_gettime(CLOCK_MONOTONIC, &t_end);
+    double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
+    printf("Encoding time: %.4f s\n", elapsed);
+
+    free(tmp_ycbcr.Y); free(tmp_ycbcr.Cb); free(tmp_ycbcr.Cr);
+    free(tmp_blocs);
+
+    free_all(image, mcu);
+
+    free(cos_table);
+    free(blocs);
+
+  
+    fclose(f_ecrire);
 }

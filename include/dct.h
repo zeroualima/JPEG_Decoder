@@ -2,7 +2,6 @@
 #define _DCT_H_
 
 #include <math.h>
-#include <stdint.h>
 
 #include "mcu_compression.h"
 
@@ -18,11 +17,10 @@
 /* structures */
 
 /* prototypes */
-void dct_naive(int16_t *block);
 void cos_init(double *cos_table);
 void dct_bloc_naive(int16_t *input, int16_t *output,double *cos_table);
 void dct_1d(double *input, double *output, double *cos_table);
 void dct_bloc_1d(int16_t *input, int16_t *output, double *cos_table);
-void dct_application(bloc *mcu_flow, bloc *dct_flow, int nb_blocs, double *cos_table);
+void dct_application(bloc *mcu_flow, bloc *dct_flow, int nbr_blocs, double *cos_table);
 
 #endif /* _DCT_H_ */

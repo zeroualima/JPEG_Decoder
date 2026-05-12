@@ -45,27 +45,21 @@ void flush_bits(FILE *f) {
         if (buffer == 0xFF)
             fwrite("\x00", 1, 1, f);
     }
+
+    buffer = 0;
+    bit_count = 0;
 }
 
 Coeff_Huff magnitude(int val) {
     Coeff_Huff new;
     if (val < -2047 || val > 2047) fprintf(stderr, "val < -2047 ou val > 2047\n");
-    // La classe 0 corresponds a un coeff 0
-    // La classe m (dans [1, 11]) contient les elements :
-    // [-(2(2^(m-1)) - 1); -(2^(m-1))]U[(2^(m-1)); (2(2^(m-1)) - 1)]
     uint8_t classe = 0;
     if (val != 0) {
-        for (uint8_t m = 1; m <= 11; m++) {
-            int b = pow(2, m-1);
-            if ((-(2*b - 1) <= val && val <= -b) || (b <= val && val <= (2*b - 1))) {
-                classe = m;
-                break;
-            }
-        }
+        int absval = val < 0 ? -val : val;
+        classe = 32 - __builtin_clz(absval);
     }
     new.classe = classe;
-    int indice = (val >= 0) ? val : val + (2*pow(2, classe - 1) - 1); // type ?
-    new.indice = indice;
+    new.indice = (val >= 0) ? val : val + (1 << classe) - 1;
     return new;
 }
 
@@ -155,12 +149,14 @@ void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool i
         }
         write_bits(f, code.chemin, code.profondeur);
         // print_bits(coeff_info.indice, coeff_info.classe); // Inutile, il faut l'indice dans la classe de magnitude du coeff du vecteur non pas de sa representation Huffmann
-        write_bits(f, magnitude(coeff).indice, magnitude(coeff).classe); // Ici l'indice est code sur m bits
+        Coeff_Huff coeff_ac = magnitude(coeff);
+        write_bits(f, coeff_ac.indice, coeff_ac.classe);
         // printf("%b", magnitude(coeff).indice); // Ici l'indice est code sur le minimum de bits
     }
 }
 
 void chaine_Huff_vect(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predicateur) {
+    // Mode Baseline
     chaine_Huff_coeff(f, coeffs[0], -1, true, is_Y, is_Cb, predicateur);
     int cpt_zeros = 0;
     for (int i = 1; i < 64; i++) { // Detect when all comings are zeros
@@ -193,5 +189,50 @@ void chaine_Huff_vect(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predi
             chaine_Huff_coeff(f, coeffs[i], cpt_zeros, false, is_Y, is_Cb, -1);
             cpt_zeros = 0;
         }
-    }
+    }    
 }
+
+/* version adaptée pour le mode progressif */
+// void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb, int predicateur, int debut, int fin) {
+//     if (debut == 0 && fin == 0) {
+//         // Scan 1, Mode Progressif
+//         chaine_Huff_coeff(f, coeffs[0], -1, true, is_Y, is_Cb, predicateur);
+//     } else if (fin != 0) {
+//         // Autres Scans (#?)
+//         int cpt_zeros = 0;
+//         for (int i = debut; i < fin + 1; i++) { // Detect when all comings are zeros
+//             if (coeffs[i] == 0) {
+//                 cpt_zeros++;
+//                 /* !!!! attention "i" s'arret à "fin" et non pas à 63 */
+//                 if (i == fin) { // Il faut ecrire EOB
+//                     Chemin_Huff eob;
+//                     if (is_Y) {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
+//                     } else if (is_Cb) {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
+//                     } else {
+//                         eob = codage_Huff(0x00, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
+//                     }
+//                     write_bits(f, eob.chemin, eob.profondeur);
+//                 }
+//             } else {
+//                 // ZRL : émettre 0xF0 pour chaque groupe de 16 zéros
+//                 while (cpt_zeros >= 16) {
+//                     Chemin_Huff zrl;
+//                     if (is_Y)
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][0], htables_symbols[1][0]);
+//                     else if (is_Cb)
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][1], htables_symbols[1][1]);
+//                     else
+//                         zrl = codage_Huff(0xF0, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
+//                     write_bits(f, zrl.chemin, zrl.profondeur);
+//                     cpt_zeros -= 16;
+//                 }
+//                 chaine_Huff_coeff(f, coeffs[i], cpt_zeros, false, is_Y, is_Cb, -1);
+//                 cpt_zeros = 0;
+//             }
+//         }
+//     } else {
+//         fprintf(stderr, "UNSUPPORTED COMBINATION OF PARAMETERS");
+//     }
+// }

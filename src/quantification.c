@@ -23,8 +23,9 @@ void quantification_bloc(int16_t input[64], int16_t output[64], bloc_type bloc) 
 }
 
 /* aplication de quantification sur tout le flux */
-void quantification_application(bloc *zz_flow, bloc *q_flow, int nb_blocs) {
-    for (int b = 0; b < nb_blocs; b++) {
+void quantification_application(bloc *zz_flow, bloc *q_flow, int nbr_blocs) {
+    for (int b = 0; b < nbr_blocs; b++) {
         quantification_bloc(zz_flow[b].data, q_flow[b].data, zz_flow[b].type);
+        q_flow[b].type = zz_flow[b].type;
     }
 }

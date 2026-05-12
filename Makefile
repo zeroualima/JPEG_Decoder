@@ -40,7 +40,7 @@ debug: clean $(TARGET) $(TEST_BINS) ##! Nettoie et recompile en mode debug, car 
 tests: $(VENV_DEP) all ##! Compile et lance les tests
 	-$(PYTHON) -m pytest -k "test_c_unity or test_integration" #-n 4
 
-perf: CFLAGS += -O3 -fno-omit-frame-pointer -ffast-math -march=native
+perf: CFLAGS += -O3 -fno-omit-frame-pointer -ffast-math
 perf: clean $(TARGET) ##! Nettoie et recompile en mode perf (O3 sans instrumentation) et évalue la perf de votre bouzin
 	-$(PYTHON) -m pytest -k "test_performance or test_memory" 
 
