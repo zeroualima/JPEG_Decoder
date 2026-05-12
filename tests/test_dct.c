@@ -35,12 +35,15 @@ void test_wikipedia(void) {
     /* j'ai pas utilise "dct_naive" proposee */
 
     double cos_table[64];
-    int16_t output[64];
-
+    int16_t output_1[64];
+    int16_t output_2[64];
+    
     cos_init(cos_table);
-    dct_bloc_1d(ref, output, cos_table);
+    dct_bloc_naive(ref, output_1, cos_table)
+    dct_bloc_1d(ref, output_2, cos_table);
 
-    TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output, 64); // On est bon à la louche
+    TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_1, 64); // On est bon à la louche
+    TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_2, 64); // On est bon à la louche
 }
 
 
