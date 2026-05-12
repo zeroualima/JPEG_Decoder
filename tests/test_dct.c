@@ -39,7 +39,7 @@ void test_wikipedia(void) {
     int16_t output_2[64];
     
     cos_init(cos_table);
-    dct_bloc_naive(ref, output_1, cos_table)
+    dct_bloc_naive(ref, output_1, cos_table);
     dct_bloc_1d(ref, output_2, cos_table);
 
     TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_1, 64); // On est bon à la louche
