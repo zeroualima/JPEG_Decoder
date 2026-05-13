@@ -14,8 +14,9 @@ Le traitement se fait MCU par MCU (Minimum Coded Unit). Voici les étapes dans l
 
 ```
 <Fichier>.ppm/pgm : gestion dans  main.c
-      │
-      ▼
+
+          │
+          ▼
 ┌─────────────────────┐
 │  Parsing & padding  │  parser_resize.c
 │  Lecture de l'image │  Lecture ligne par ligne, padding à des multiples de 8*v[0] et 8*h[0]
