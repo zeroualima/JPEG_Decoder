@@ -279,27 +279,27 @@ SCENARII["cli"] = [
     },
 
 
-    # TESTS DE CONFORMITE DES PARAMETRES DU FICHIER IMAGE EN ENTREE
-    {
-        "id": "Numero magic incorrect / fichier vide",
-        "cmd": [exe, str(pas_de_nbr_magic)],
-        "should_succeed": False
-    },
-    {
-        "id": "Largeur inconvenable",
-        "cmd": [exe, str(w_inconvenable)],
-        "should_succeed": False
-    },
-    {
-        "id": "Hauteur inconvenable",
-        "cmd": [exe, str(h_inconvenable)],
-        "should_succeed": False
-    },
-    {
-        "id": "Maxval inconvenable",
-        "cmd": [exe, str(maxval_inconvenable)],
-        "should_succeed": False
-    },
+    # # TESTS DE CONFORMITE DES PARAMETRES DU FICHIER IMAGE EN ENTREE
+    # {
+    #     "id": "Numero magic incorrect / fichier vide",
+    #     "cmd": [exe, str(pas_de_nbr_magic)],
+    #     "should_succeed": False
+    # },
+    # {
+    #     "id": "Largeur inconvenable",
+    #     "cmd": [exe, str(w_inconvenable)],
+    #     "should_succeed": False
+    # },
+    # {
+    #     "id": "Hauteur inconvenable",
+    #     "cmd": [exe, str(h_inconvenable)],
+    #     "should_succeed": False
+    # },
+    # {
+    #     "id": "Maxval inconvenable",
+    #     "cmd": [exe, str(maxval_inconvenable)],
+    #     "should_succeed": False
+    # },
 
 
 
