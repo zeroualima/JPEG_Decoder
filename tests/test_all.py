@@ -231,6 +231,27 @@ SCENARII["cli"] = [
         "ref": str(invader),
         "out": str(invader_jpg)
     },
+
+
+    # TEST DE MAUVAIS SAMPLING_FACTORS
+    {
+        "id": "Valeur d'un sampling factor > 4",
+        "cmd": [exe, f"--sample=5x1,1x1,1x1", str(invader)],
+        "should_succeed": False
+    },
+    {
+        "id": "Somme des sampling factors > 10",
+        "cmd": [exe, f"--sample=3x3,2x2,1x1", str(invader)],
+        "should_succeed": False
+    },
+    {
+        "id": "h0 n'est pas divisible par h1 ou h2",
+        "cmd": [exe, f"--sample=1x1,2x2,2x2", str(invader)],
+        "should_succeed": False
+    },
+
+
+
     # TESTS DU MODE PROGRESSIF
     {
         "id": "Invader avec --mode",
