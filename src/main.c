@@ -7,6 +7,7 @@
 #include "parser_resize.h"
 #include "traitement_mcu.h"
 #include "make_JPEG.h"
+#include "progressif.h"
 
 int main(int argc, char **argv) {
     char *infile = NULL;
@@ -14,21 +15,25 @@ int main(int argc, char **argv) {
 
     char *sample_arg = NULL;
 
+    char *mode = NULL;
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
-            printf("Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
+            printf("Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] [--mode=s/p] <input>\n", argv[0]);
             exit(0);
         } else if (strncmp(argv[i], "--outfile=", 10) == 0) {
             outfile_arg = argv[i] + 10;
         } else if (strncmp(argv[i], "--sample=", 9) == 0) {
             sample_arg = argv[i] + 9;
+        } else if (strncmp(argv[i], "--mode=", 7) == 0) {
+            mode = argv[i] + 7;
         } else {
             infile = argv[i];
         }
     }
 
     if (!infile) {
-        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] <input>\n", argv[0]);
+        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] [--mode=s/p] <input>\n", argv[0]);
         exit(1);
     }
 
@@ -122,43 +127,48 @@ int main(int argc, char **argv) {
     int mcu_rows = image->ph / (8 * s.v[0]);
     int mcu_cols = image->pw / (8 * s.h[0]);
 
-    add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s); 
-    for (int i = 0; i < mcu_rows; i++) {
-        for (int j = 0; j < mcu_cols; j++) {
-            int pixel_row = i * 8 * s.v[0];
-            int pixel_col = j * 8 * s.h[0];
-            long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
-            fill_mcu(image, mcu, s, mcu_starting_position);
-            traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
-            add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+
+    if (!mode || strncmp(mode, "s", 1) == 0) {
+        add_JPEG_entete(f_ecrire, image->h, image->w, nb_colors, s); 
+        for (int i = 0; i < mcu_rows; i++) {
+            for (int j = 0; j < mcu_cols; j++) {
+                int pixel_row = i * 8 * s.v[0];
+                int pixel_col = j * 8 * s.h[0];
+                long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+                fill_mcu(image, mcu, s, mcu_starting_position);
+                traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+                add_JPEG_total_bitstream(f_ecrire, nbr_bloc_mcu, blocs);
+            }
         }
+        add_JPEG_end(f_ecrire);
+    } else if (strncmp(mode, "p", 1) == 0) {
+        #define SCANS 5
+        int debut[SCANS] = {0, 1, 1, 1, 10};
+        int fin[SCANS] = {0, 9, 63, 63, 63};
+        add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
+        for (int scan = 0; scan < SCANS; scan++) {
+
+            /* ecriture de DHT et SOS en fct de "scan" */
+            write_DHT_SOS_progressif(f_ecrire, scan, nb_colors, debut[scan], fin[scan]);
+
+            /* traitement de l'MCU + ecriture de bitstream en fct dee "scan" */
+            for (int i = 0; i < mcu_rows; i++) {
+                for (int j = 0; j < mcu_cols; j++) {
+                    int pixel_row = i * 8 * s.v[0];
+                    int pixel_col = j * 8 * s.h[0];
+                    long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
+                    fill_mcu(image, mcu, s, mcu_starting_position);
+                    traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
+                    add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan);
+                }
+            }
+
+            /* on ecrit "EOI" que vers la fin */
+            add_JPEG_end_progressif(f_ecrire, scan, SCANS);
+        }
+    } else {
+        fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] [--mode=s/p] <input>\n", argv[0]);
     }
-    add_JPEG_end(f_ecrire);
-
-    // #define SCANS 5
-    // int debut[SCANS] = {0, 1, 1, 1, 10};
-    // int fin[SCANS] = {0, 9, 63, 63, 63};
-    // add_JPEG_entete_progressif(f_ecrire, image->h, image->w, nb_colors, s);
-    // for (int scan = 0; scan < SCANS; scan++) {
-
-    //     /* ecriture de DHT et SOS en fct de "scan" */
-    //     write_DHT_SOS_progressif(f_ecrire, scan, nb_colors, debut[scan], fin[scan]);
-
-    //     /* traitement de l'MCU + ecriture de bitstream en fct dee "scan" */
-    //     for (int i = 0; i < mcu_rows; i++) {
-    //         for (int j = 0; j < mcu_cols; j++) {
-    //             int pixel_row = i * 8 * s.v[0];
-    //             int pixel_col = j * 8 * s.h[0];
-    //             long mcu_starting_position = image->header_offset + (long)(pixel_row * image->w + pixel_col) * image->colors;
-    //             fill_mcu(image, mcu, s, mcu_starting_position);
-    //             traitement_mcu(mcu, blocs, s, nbr_bloc_mcu, cos_table, colors, &tmp_ycbcr, tmp_blocs);
-    //             add_JPEG_total_bitstream_progressif(f_ecrire, nbr_bloc_mcu, blocs, debut[scan], fin[scan], scan);
-    //         }
-    //     }
-
-    //     /* on ecrit "EOI" que vers la fin */
-    //     add_JPEG_end_progressif(f_ecrire, scan, SCANS);
-    // }
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
