@@ -24,6 +24,10 @@ motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
 
 
+### Pour les tests
+fich_sans_extension = etu_dir/"image"
+fich_inexistant = etu_dir/"inexistant.pgm"
+
 ### Pour tester le progressif
 bisou = etu_dir/"bisou.pgm" 
 zigzag = etu_dir/"zig-zag.ppm"
@@ -232,8 +236,26 @@ SCENARII["cli"] = [
         "out": str(invader_jpg)
     },
 
+    # TESTS
+    {
+        "id": "Pas d'extension dans l'entree",
+        "cmd": [exe, str(fich_sans_extension)],
+        "should_succeed": False
+    },
+    {
+        "id": "Fichier inexistant",
+        "cmd": [exe, str(fich_inexistant)],
+        "should_succeed": False
+    },
+
+
 
     # TEST DE MAUVAIS SAMPLING_FACTORS
+    {
+        "id": "Sampling factors non entiers",
+        "cmd": [exe, f"--sample=ax1,1x1,1x1", str(invader)],
+        "should_succeed": False
+    },
     {
         "id": "Valeur d'un sampling factor > 4",
         "cmd": [exe, f"--sample=5x1,1x1,1x1", str(invader)],

@@ -52,11 +52,15 @@ void flush_bits(FILE *f) {
 
 Coeff_Huff magnitude(int val) {
     Coeff_Huff new;
-    if (val < -2047 || val > 2047) fprintf(stderr, "val < -2047 ou val > 2047\n");
+    if (val < -2047 || val > 2047) {
+        fprintf(stderr, "val < -2047 ou val > 2047\n");
+        exit(1);
+    }
     uint8_t classe = 0;
     if (val != 0) {
         int absval = val < 0 ? -val : val;
-        classe = 32 - __builtin_clz(absval);
+        classe = 32 - __builtin_clz(absval); ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     }
     new.classe = classe;
     new.indice = (val >= 0) ? val : val + (1 << classe) - 1;

@@ -74,7 +74,6 @@ int main(int argc, char **argv) {
         int h0, v0, h1, v1, h2, v2;
         if (sscanf(sample_arg, "%dx%d,%dx%d,%dx%d", &h0, &v0, &h1, &v1, &h2, &v2) != 6) {
             fprintf(stderr, "Usage: --sample=HxV,HxV,HxV\n");
-
             fclose(f_ecrire);
             exit(1);
         }
