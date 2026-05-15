@@ -22,6 +22,7 @@ zz = etu_dir/"zig-zag.ppm"
 invader_jpg =  out_dir/"invader.jpg"
 motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
+mode_prog = "p"
 
 def pytest_error(message, command="", stdout="", stderr=""):
     """Formatage propre des erreurs pour l'étudiant."""
@@ -217,6 +218,13 @@ SCENARII["cli"] = [
     {
         "id": "Invader avec --outfile, bloated",
         "cmd": [exe, f"--outfile={bloated_invader}", str(invader)],
+        "ref": str(invader),
+        "out": str(invader_jpg)
+    },
+    # TESTS DU MODE PROGRESSIF
+    {
+        "id": "Invader avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(invader)],
         "ref": str(invader),
         "out": str(invader_jpg)
     }
