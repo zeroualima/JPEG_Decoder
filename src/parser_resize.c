@@ -19,30 +19,30 @@ void skip_whitespace_and_comments(FILE *fp) {
 }
 
 
-
-
-
-
 void init_image(Image *image, char *path, sampling_factors s) {
     image->f = fopen(path, "rb");
 
     if (!fscanf(image->f, "%2s", image->magic)) {
         fclose(image->f);
+        fprintf(stderr, "Pas de nombre magic dans le fichier d'entree\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->w)) {
         fclose(image->f);
+        fprintf(stderr, "Lageur inconvenable\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->h)) {
         fclose(image->f);
+        fprintf(stderr, "Hauteur inconvenable\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->maxval)) {
         fclose(image->f);
+        fprintf(stderr, "Maxval inconvenable\n");
         exit(1);
     }
     fgetc(image->f);

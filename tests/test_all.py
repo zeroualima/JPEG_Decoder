@@ -23,10 +23,14 @@ invader_jpg =  out_dir/"invader.jpg"
 motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
 
-
 ### Pour les tests
-fich_sans_extension = etu_dir/"image"
-fich_inexistant = etu_dir/"inexistant.pgm"
+test_dir = images_dir/"test_pics"
+fich_sans_extension = test_dir/"image"
+fich_inexistant = test_dir/"inexistant.pgm"
+pas_de_nbr_magic = test_dir/"pas_de_nbr_magic.pgm"
+w_inconvenable = test_dir/"w_inconvenable.pgm"
+h_inconvenable = test_dir/"h_inconvenable.pgm"
+maxval_inconvenable = test_dir/"maxval_inconvenable.pgm"
 
 ### Pour tester le progressif
 bisou = etu_dir/"bisou.pgm" 
@@ -236,6 +240,8 @@ SCENARII["cli"] = [
         "out": str(invader_jpg)
     },
 
+    
+
     # TESTS
     {
         "id": "Pas d'extension dans l'entree",
@@ -269,6 +275,29 @@ SCENARII["cli"] = [
     {
         "id": "h0 n'est pas divisible par h1 ou h2",
         "cmd": [exe, f"--sample=1x1,2x2,2x2", str(invader)],
+        "should_succeed": False
+    },
+
+
+    # TESTS DE CONFORMITE DES PARAMETRES DU FICHIER IMAGE EN ENTREE
+    {
+        "id": "Numero magic incorrect / fichier vide",
+        "cmd": [exe, str(pas_de_nbr_magic)],
+        "should_succeed": False
+    },
+    {
+        "id": "Largeur inconvenable",
+        "cmd": [exe, str(w_inconvenable)],
+        "should_succeed": False
+    },
+    {
+        "id": "Hauteur inconvenable",
+        "cmd": [exe, str(h_inconvenable)],
+        "should_succeed": False
+    },
+    {
+        "id": "Maxval inconvenable",
+        "cmd": [exe, str(maxval_inconvenable)],
         "should_succeed": False
     },
 
