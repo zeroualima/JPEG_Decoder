@@ -1,5 +1,6 @@
 #include "mcu_compression.h"
 
+/* il faut ajouter un test avec un mal "sampling_factors" */
 void test_sampling_factors(sampling_factors s) {
     int sum = 0;
 
