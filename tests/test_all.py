@@ -22,7 +22,17 @@ zz = etu_dir/"zig-zag.ppm"
 invader_jpg =  out_dir/"invader.jpg"
 motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
+
+
+### Pour tester le progressif
+bisou = etu_dir/"bisou.pgm" 
+zigzag = etu_dir/"zig-zag.ppm"
+horizontal = etu_dir/"horizontal.ppm"
+bisou_jpg =  out_dir/"bisou.jpg"
+zigzag_jpg = out_dir/"zig-zag.jpg"
+horizontal_jpg = out_dir/"horizontal.jpg"
 mode_prog = "p"
+
 
 def pytest_error(message, command="", stdout="", stderr=""):
     """Formatage propre des erreurs pour l'étudiant."""
@@ -227,6 +237,24 @@ SCENARII["cli"] = [
         "cmd": [exe, f"--mode={mode_prog}", str(invader)],
         "ref": str(invader),
         "out": str(invader_jpg)
+    },
+    {
+        "id": "Bisou avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(bisou)],
+        "ref": str(bisou),
+        "out": str(bisou_jpg)
+    },
+    {
+        "id": "Zig-Zag avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(zigzag)],
+        "ref": str(zigzag),
+        "out": str(zigzag_jpg)
+    },
+    {
+        "id": "Horizontal avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(horizontal)],
+        "ref": str(horizontal),
+        "out": str(horizontal_jpg)
     }
 ]
 
