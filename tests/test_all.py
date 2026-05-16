@@ -24,13 +24,16 @@ motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
 
 ### Pour les tests
-test_dir = images_dir/"test_pics"
-fich_sans_extension = test_dir/"image"
-fich_inexistant = test_dir/"inexistant.pgm"
-pas_de_nbr_magic = test_dir/"pas_de_nbr_magic.pgm"
-w_inconvenable = test_dir/"w_inconvenable.pgm"
-h_inconvenable = test_dir/"h_inconvenable.pgm"
-maxval_inconvenable = test_dir/"maxval_inconvenable.pgm"
+test_pics_dir = images_dir/"test_pics"
+fich_sans_extension = test_pics_dir/"image"
+fich_inexistant = test_pics_dir/"inexistant.pgm"
+pas_de_nbr_magic = test_pics_dir/"pas_de_nbr_magic.pgm"
+w_inconvenable = test_pics_dir/"w_inconvenable.pgm"
+h_inconvenable = test_pics_dir/"h_inconvenable.pgm"
+maxval_inconvenable = test_pics_dir/"maxval_inconvenable.pgm"
+comment = test_pics_dir/"comment.pgm"
+
+comment_jpg = test_pics_dir/"comment.jpg"
 
 ### Pour tester le progressif
 bisou = etu_dir/"bisou.pgm" 
@@ -299,6 +302,12 @@ SCENARII["cli"] = [
         "id": "Maxval inconvenable",
         "cmd": [exe, str(maxval_inconvenable)],
         "should_succeed": False
+    },
+    {
+        "id": "PGM avec Commentaire",
+        "cmd": [exe, f"--outfile=images/test_pics/comment.jpg", str(comment)],
+        "ref": str(comment),
+        "out": str(comment_jpg)
     },
 
 
