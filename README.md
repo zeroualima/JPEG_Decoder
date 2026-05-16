@@ -1,8 +1,8 @@
 # Encodeur JPEG | JPEG ENCODER
 
-![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
+![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/propalCI/coverage.svg)
 
-[Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
+[Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/propalCI)
 
 Ce projet implémente un encodeur JPEG from scratch en C. Il prend en entrée des images PPM (couleur) ou PGM (niveaux de gris) et produit des fichiers JPEG valides conformes au standard JFIF.
 
