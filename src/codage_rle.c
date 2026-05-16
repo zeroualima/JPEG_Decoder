@@ -126,7 +126,7 @@ Chemin_Huff codage_Huff(int classe, const uint8_t counts[], const uint8_t symbol
     // fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
     // result.chemin = 0;
     // result.profondeur = 0;
-    // return result;
+    return result;
 }
 
 void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool is_Y, bool is_Cb, int predicateur) {
