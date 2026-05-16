@@ -32,9 +32,10 @@ void write_bits(FILE *f, int val, int nbr_bits) {
             buffer = 0;
             bit_count = 0;
         }
-    } else {
-        fprintf(stderr, "Operation Impossible : nbr_bits > 8");
     }
+    //  else {
+    //     fprintf(stderr, "Operation Impossible : nbr_bits > 8");
+    // }
 }
 
 void flush_bits(FILE *f) {
@@ -52,10 +53,10 @@ void flush_bits(FILE *f) {
 
 Coeff_Huff magnitude(int val) {
     Coeff_Huff new;
-    if (val < -2047 || val > 2047) {
-        fprintf(stderr, "val < -2047 ou val > 2047\n");
-        exit(1);
-    }
+    // if (val < -2047 || val > 2047) {
+    //     fprintf(stderr, "val < -2047 ou val > 2047\n");
+    //     exit(1);
+    // }
     uint8_t classe = 0;
     if (val != 0) {
         int absval = val < 0 ? -val : val;
@@ -121,11 +122,11 @@ Chemin_Huff codage_Huff(int classe, const uint8_t counts[], const uint8_t symbol
         }
         code <<= 1;  // passer au niveau suivant
     }
-
-    fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
-    result.chemin = 0;
-    result.profondeur = 0;
-    return result;
+    
+    // fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
+    // result.chemin = 0;
+    // result.profondeur = 0;
+    // return result;
 }
 
 void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool is_Y, bool is_Cb, int predicateur) {
