@@ -1,23 +1,24 @@
 #include "quantification.h"
 
 /* quantification sur un bloc du flux DCT (bloc de 8*8 sous forme de vecteur) */
-void quantification_bloc(int16_t input[64], int16_t output[64], bloc_type bloc) {
+void quantification_bloc(int16_t *input, int16_t *output, bloc_type bloc) {
     
-    if (bloc == 0) {
+    if (bloc == Y) {
         /* si le bloc 8*8 est un Y */
-        for (int i = 0; i < 64; i++) {
+        for (int idx = 0; idx < 64; idx++) {
             /* 
                 cas possible :
-                    -> output[i] = (uint16_t)round(       input[i] /        qtable[i]);
-                    -> output[i] = (uint16_t)round((float)input[i] / (float)qtable[i]);
+                    -> output[idx] = (uint16_t)round(       input[idx] /        qtable[idx]);
+                    -> output[idx] = (uint16_t)round((float)input[idx] / (float)qtable[idx]);
                 ou bien en utilise "floor" au lieu de "round"
             */
-            output[i] = (int16_t)round((float)input[i] / (float)quantification_table_Y[i]);
+            output[idx] = (int16_t)round((float)input[idx] / (float)quantification_table_Y[idx]);
         }
     } else {
         /* si le bloc 8*8 est un Cb ou Cr */
-        for (int i = 0; i < 64; i++) {
-            output[i] = (int16_t)round((float)input[i] / (float)quantification_table_CbCr[i]);
+        for (int idx = 0; idx < 64; idx++) {
+            output[idx] = (int16_t)round((float)input[idx] / (float)quantification_table_CbCr[idx]);
+
         }
     }
 }

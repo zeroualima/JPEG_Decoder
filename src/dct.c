@@ -9,6 +9,14 @@ void cos_init(double *cos_table) {
     }
 }
 
+/* 
+    Phi(i, j) = 2 / n * alpha(i) * alpha(j) * 
+                sum_{x=0, n-1} sum_{y=0, n-1} 
+                    S(x, y) * 
+                    cos((2x + 1) * i * PI / (2n)) * 
+                    cos((2y + 1) * j * PI / (2n)) 
+*/
+
 /* DCT naive */
 void dct_bloc_naive(int16_t *input, int16_t *output, double *cos_table) {
     for (int i = 0; i < 8; i++) {
@@ -25,7 +33,7 @@ void dct_bloc_naive(int16_t *input, int16_t *output, double *cos_table) {
     }
 }
 
-/* DCT optimisé */
+/* DCT optimisé (séparation 1D) */
 void dct_1d(double *input, double *output, double *cos_table) {
     for (int k = 0; k < 8; k++) {
         double sum = 0.0;
