@@ -25,6 +25,8 @@ bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jp
 
 ### Pour les tests
 test_pics_dir = images_dir/"test_pics"
+test_pics_pgm_dir = test_pics_dir/"pgm_tests"
+test_pics_ppm_dir = test_pics_dir/"ppm_tests"
 fich_sans_extension = test_pics_dir/"image"
 fich_inexistant = test_pics_dir/"inexistant.pgm"
 pas_de_nbr_magic = test_pics_dir/"pas_de_nbr_magic.pgm"
@@ -355,6 +357,29 @@ SCENARII["se-base"] = [
     for f in sorted(etu_dir.rglob("*.ppm")) if str(f.stem) not in ["biiiiiig","zig-zag"]
     for se in [(2,2,1,2,1,2), (2,2,2,1,2,1), (1,2,1,1,1,1), (2,1,1,1,1,1), (2,2,1,1,1,1)]
 ]
+
+SCENARII["Images Tests PGM"] = [
+    get_scenario_dict_base(f)
+    for f in sorted(test_pics_pgm_dir.rglob("*.pgm"))
+]
+
+SCENARII["Images Tests PPM"] = [
+    get_scenario_dict_base(f)
+    for f in sorted(test_pics_ppm_dir.rglob("*.ppm"))
+]
+
+SCENARII["se-base-PGM"] = [
+    get_scenario_dict(f,se)
+    for f in sorted(test_pics_pgm_dir.rglob("*.pgm"))
+    for se in [(2,2,1,2,1,2), (2,2,2,1,2,1), (1,2,1,1,1,1), (2,1,1,1,1,1), (2,2,1,1,1,1)]
+]
+
+SCENARII["se-base-PPM"] = [
+    get_scenario_dict(f,se)
+    for f in sorted(test_pics_ppm_dir.rglob("*.ppm"))
+    for se in [(2,2,1,2,1,2), (2,2,2,1,2,1), (1,2,1,1,1,1), (2,1,1,1,1,1), (2,2,1,1,1,1)]
+]
+
 # Sous-ech le grand jeu sur zz TODO echange zz-vertical pour plus de violence ?
 scenarii_subsampling = [
     get_scenario_dict(f,se)
@@ -374,7 +399,7 @@ def quality_check(request, add_metric):
     et/ou une image obtenue avec convert"""
     # Fixture factory pour garder l'accès aux autres fixtures
     def _check(category,scenario):
-        if category not in ["gris","couleur","se-base","se-full"]: return
+        if category not in ["gris","couleur","se-base", "Images Tests PGM", "Images Tests PPM", "se-full"]: return
         ppm = scenario.get("ref")
         jpg = scenario.get("out")
         se = scenario.get("se")
