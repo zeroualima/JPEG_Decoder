@@ -34,6 +34,7 @@ w_inconvenable = test_pics_dir/"w_inconvenable.pgm"
 h_inconvenable = test_pics_dir/"h_inconvenable.pgm"
 maxval_inconvenable = test_pics_dir/"maxval_inconvenable.pgm"
 comment = test_pics_dir/"comment.pgm"
+malformed = test_pics_dir/"malformed.ppm"
 
 comment_jpg = test_pics_dir/"comment.jpg"
 
@@ -311,6 +312,11 @@ SCENARII["cli"] = [
         "ref": str(comment),
         "out": str(comment_jpg)
     },
+    {
+        "id": "Failed to read from the file",
+        "cmd": [exe, f"--outfile=images/test_pics/malformed.jpg", str(malformed)],
+        "should_succeed": False
+    },
 
 
 
@@ -368,12 +374,6 @@ SCENARII["Images Tests PPM"] = [
     for f in sorted(test_pics_ppm_dir.rglob("*.ppm"))
 ]
 
-SCENARII["se-base-PGM"] = [
-    get_scenario_dict(f,se)
-    for f in sorted(test_pics_pgm_dir.rglob("*.pgm"))
-    for se in [(2,2,1,2,1,2), (2,2,2,1,2,1), (1,2,1,1,1,1), (2,1,1,1,1,1), (2,2,1,1,1,1)]
-]
-
 SCENARII["se-base-PPM"] = [
     get_scenario_dict(f,se)
     for f in sorted(test_pics_ppm_dir.rglob("*.ppm"))
@@ -399,7 +399,7 @@ def quality_check(request, add_metric):
     et/ou une image obtenue avec convert"""
     # Fixture factory pour garder l'accès aux autres fixtures
     def _check(category,scenario):
-        if category not in ["gris","couleur","se-base", "Images Tests PGM", "Images Tests PPM", "se-full"]: return
+        if category not in ["gris","couleur","se-base", "Images Tests PGM", "Images Tests PPM", "se-base-PPM", "se-full"]: return
         ppm = scenario.get("ref")
         jpg = scenario.get("out")
         se = scenario.get("se")
