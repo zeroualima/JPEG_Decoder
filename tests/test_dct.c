@@ -32,7 +32,7 @@ void test_wikipedia(void) {
 	0, 0, -1, -4, -1, 0, 0, 2
     };
     
-    /* j'ai pas utilise "dct_naive" proposee */
+    /* on n'utilise pas la version "dct_naive" fournie */
 
     double cos_table[64];
     int16_t output_1[64];
@@ -42,7 +42,7 @@ void test_wikipedia(void) {
     dct_bloc_naive(ref, output_1, cos_table);
     dct_bloc_1d(ref, output_2, cos_table);
 
-    TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_1, 64); // On est bon à la louche
+    TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_1, 64); 
     TEST_ASSERT_INT16_ARRAY_WITHIN(1, expected, output_2, 64); // On est bon à la louche
 }
 

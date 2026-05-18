@@ -1,6 +1,6 @@
 #include "mcu_compression.h"
 
-/* il faut ajouter un test avec un mal "sampling_factors" */
+/* test de "sampling_factors" */
 void test_sampling_factors(sampling_factors s) {
     int sum = 0;
 
@@ -44,28 +44,30 @@ void test_sampling_factors(sampling_factors s) {
 //     return nbr_mcu; 
 // }
 
-/* remplisage du bloc 8*8 de Y de coordonne (origine_x, origine_y) */
-void bloc_Y(uint8_t *Y, int mcu_width, int origine_x, int origine_y, int16_t bloc[64]) {
-    for (int y = 0; y < 8; y++) {
-        for (int x = 0; x < 8; x++) {
-            bloc[y * 8 + x] = (int16_t)Y[(origine_y * 8 + y) * mcu_width + (origine_x * 8 + x)];
+/* remplisage du bloc 8*8 de Y de coordonne (x, y) */
+void bloc_Y(uint8_t *Y, int mcu_width, int x, int y, int16_t bloc[64]) {
+    for (int dy = 0; dy < 8; dy++) {
+        for (int dx = 0; dx < 8; dx++) {
+            bloc[dy * 8 + dx] = (int16_t)Y[(y * 8 + dy) * mcu_width + (x * 8 + dx)];
         }
     }
 }
 
-/* remplisage du bloc 8*8 de Cb/Cr de coordonne (origine_x, origine_y) (avec sous-échantillonnage) */
-void bloc_Cb_Cr(uint8_t *Cb_Cr, int mcu_width, int origine_x, int origine_y, int h_factor, int v_factor, int16_t bloc[64]) {
-    for (int y = 0; y < 8; y++) {
-        for (int x = 0; x < 8; x++) {
-            int px = (origine_x * 8 + x) * h_factor;
-            int py = (origine_y * 8 + y) * v_factor;
+/* remplisage du bloc 8*8 de Cb/Cr de coordonne (x, y) (avec sous-échantillonnage) */
+void bloc_Cb_Cr(uint8_t *Cb_Cr, int mcu_width, int x, int y, int h_factor, int v_factor, int16_t bloc[64]) {
+    for (int dy = 0; dy < 8; dy++) {
+        for (int dx = 0; dx < 8; dx++) {
+            int origine_x = (x * 8 + dx) * h_factor;
+            int origine_y = (y * 8 + dy) * v_factor;
             int sum = 0;
-            for (int dy = 0; dy < v_factor; dy++) {
-                for (int dx = 0; dx < h_factor; dx++) {
-                    sum += Cb_Cr[(py + dy) * mcu_width + (px + dx)];
+            for (int j = 0; j < v_factor; j++) {
+                for (int i = 0; i < h_factor; i++) {
+                    int px = origine_x + i;
+                    int py = origine_y + j;
+                    sum += Cb_Cr[py * mcu_width + px];
                 }
             }
-            bloc[y * 8 + x] = (int16_t)(sum / (h_factor * v_factor));
+            bloc[dy * 8 + dx] = (int16_t)(sum / (h_factor * v_factor));
         }
     }
 }

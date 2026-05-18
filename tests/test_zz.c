@@ -17,7 +17,7 @@ void test2(void){
 
 void test_position(void) {
     /* 
-        j'ai change le type des donnees de "uint8_t" a "int16_t"
+        on a change le type des donnees de "uint8_t" a "int16_t"
         pour les adapter a la fonction "zz_bloc"
     */
 
@@ -42,7 +42,7 @@ void test_position(void) {
 	53, 60, 61, 54, 47, 55, 62, 63 
     };
     
-    /* j'ai pas utilise "zz" proposee */
+    /* on n'utilise pas la version "zz" fournie */
 
     int16_t output[64];
 
