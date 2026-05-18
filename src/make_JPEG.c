@@ -16,7 +16,7 @@ uint8_t app0[] = {
 };
 
 // DQT
-void write_DQT(FILE *f, uint8_t iQ, const uint8_t table_zigzag[64]) {
+void write_DQT(FILE *f, uint8_t iQ, const uint8_t table_quantification[64]) {
     uint8_t entete[] = {
         0xFF, 0xDB, // marqueur DQT
         0x00, 0x43, // longueur = 67 = 2(2 octets de longueur eux-mêmes) + 1(le byte précision/iQ) + 64(les valeurs de la table)
@@ -25,7 +25,7 @@ void write_DQT(FILE *f, uint8_t iQ, const uint8_t table_zigzag[64]) {
     fwrite(entete, 1, sizeof(entete), f);
 
     // Les 64 valeurs en ordre zig-zag
-    fwrite(table_zigzag, 1, 64, f);
+    fwrite(table_quantification, 1, 64, f);
 }
 
 // SOF
@@ -44,8 +44,8 @@ void write_SOF(FILE *f, uint8_t marqueur, uint16_t hauteur, uint16_t largeur, ui
 
     if (nb_couleurs == 3) {
         uint8_t sof_[] = {
-            0x02, (fH_Cb << 4) | fV_Cb, 0x01, // Cb : iC=2, sampling 1×1, iQ=1
-            0x03, (fH_Cr << 4) | fV_Cr, 0x01, // Cr : iC=3, sampling 1×1, iQ=1
+            0x02, (fH_Cb << 4) | fV_Cb, 0x01, // Cb : iC=2, iQ=1
+            0x03, (fH_Cr << 4) | fV_Cr, 0x01, // Cr : iC=3, iQ=1
         };
         fwrite(sof_, 1, sizeof(sof_), f);
     }
@@ -104,7 +104,7 @@ void write_SOS(FILE *f, uint8_t nb_couleurs, uint8_t iH_DC_Y, uint8_t iH_AC_Y, u
     fwrite(fin, 1, sizeof(fin), f);
 }
 
-/* =================================================== Mode Baseline ============================================== */
+/* Mode Baseline */
 
 void add_JPEG_entete(FILE *f, uint16_t hauteur, uint16_t largeur, uint8_t nb_couleurs, sampling_factors s) {
     uint8_t fH_Y = s.h[0];
@@ -149,7 +149,6 @@ int predCr = 0;
 
 void add_JPEG_total_bitstream(FILE *f, int nb_blocs, bloc *blocs) {
     // BitStream baseline
-    /* ===================== Huffmann ===================== */
     for (int i = 0; i < nb_blocs; i++) {
         if (blocs[i].type == Y) {
             chaine_Huff_vect(f, blocs[i].data, true, false, predY);
@@ -169,19 +168,4 @@ void add_JPEG_end(FILE *f) {
     // EOI
     fwrite(eoi, 1, 2, f);
 }
-
-// void add_JPEG_bitstream(FILE *f, bloc bloc) {
-//     // BitStream
-//     /* ===================== Huffmann ===================== */
-//     if (bloc.type == Y) {
-//         chaine_Huff_vect(f, bloc.data, true, false, predY);
-//         predY = (bloc.data)[0];
-//     } else if (bloc.type == Cb) {
-//         chaine_Huff_vect(f, bloc.data, false, true, predCb);
-//         predCb = (bloc.data)[0];
-//     } else {
-//         chaine_Huff_vect(f, bloc.data, false, false, predCr);
-//         predCr = (bloc.data)[0];
-//     }
-// }
 

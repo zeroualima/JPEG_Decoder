@@ -3,7 +3,6 @@
 
 #include "rgb_ycbcr.h"
 
-/* structures */
 typedef enum {
     Y,
     Cb,
@@ -15,7 +14,6 @@ typedef struct {
     bloc_type type; 
 } bloc;
 
-/* prototypes */
 void test_sampling_factors(sampling_factors s);
 // int nbr_mcu(int width, int height, sampling_factors s);
 void bloc_Y(uint8_t *Y, int mcu_width, int origine_x, int origine_y, int16_t bloc[64]);

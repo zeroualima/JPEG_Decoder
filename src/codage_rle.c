@@ -59,51 +59,18 @@ Coeff_Huff magnitude(int val) {
     // }
     uint8_t classe = 0;
     if (val != 0) {
-        int absval = val < 0 ? -val : val;
-        classe = 32 - __builtin_clz(absval); ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+        for (uint8_t m = 1; m <= 11; m++) {
+            int b = pow(2, m-1);
+            if ((-(2*b - 1) <= val && val <= -b) || (b <= val && val <= (2*b - 1))) {
+                classe = m;
+                break;
+            }
+        }
     }
     new.classe = classe;
     new.indice = (val >= 0) ? val : val + (1 << classe) - 1;
     return new;
 }
-
-// Chemin_Huff codage_Huff(int classe, const uint8_t htables_nb_symb_per_lengths[], const uint8_t htables_symbols[]) {
-//     Chemin_Huff new;
-//     int profondeur = 1;
-//     int chemin = -1;
-//     int indice = 0;
-//     while (htables_symbols[indice] != classe) {
-//         if (htables_nb_symb_per_lengths[profondeur] == 0) {
-//             profondeur++;
-//             continue;
-//         } else {
-//             int compteur = 1;
-//             chemin = 2*(chemin + 1);
-//             indice++;
-//             compteur++;
-//             while (compteur <= htables_nb_symb_per_lengths[profondeur] && htables_symbols[indice] != classe) {
-//                 chemin++;
-//                 indice++;
-//                 compteur++;
-//             }
-//             if (htables_symbols[indice] == classe) {
-//                 if (compteur <= htables_nb_symb_per_lengths[profondeur]) {
-//                     chemin++;
-//                 } else {
-//                     chemin = 2*(chemin + 1);
-//                     profondeur++;
-//                 }
-//                 new.chemin = chemin;
-//                 new.profondeur = profondeur;
-//                 return new;
-//             }
-//             profondeur++;
-//         }
-//     }
-//     fprintf(stderr, "SOMETHING BAD HAPPENED!\n");
-//     return new;
-// }
 
 Chemin_Huff codage_Huff(int classe, const uint8_t counts[], const uint8_t symbols[]) {
     Chemin_Huff result;
@@ -123,7 +90,7 @@ Chemin_Huff codage_Huff(int classe, const uint8_t counts[], const uint8_t symbol
         code <<= 1;  // passer au niveau suivant
     }
     
-    // fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
+    fprintf(stderr, "SOMETHING BAD HAPPENED! classe=%d introuvable\n", classe);
     // result.chemin = 0;
     // result.profondeur = 0;
     return result;
@@ -153,10 +120,8 @@ void chaine_Huff_coeff(FILE *f, int16_t coeff, int cpt_zeros, bool is_DC, bool i
             code = codage_Huff(classe, htables_nb_symb_per_lengths[1][2], htables_symbols[1][2]);
         }
         write_bits(f, code.chemin, code.profondeur);
-        // print_bits(coeff_info.indice, coeff_info.classe); // Inutile, il faut l'indice dans la classe de magnitude du coeff du vecteur non pas de sa representation Huffmann
         Coeff_Huff coeff_ac = magnitude(coeff);
         write_bits(f, coeff_ac.indice, coeff_ac.classe);
-        // printf("%b", magnitude(coeff).indice); // Ici l'indice est code sur le minimum de bits
     }
 }
 

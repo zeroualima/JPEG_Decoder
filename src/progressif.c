@@ -13,7 +13,7 @@ void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb
         for (int i = debut; i < fin + 1; i++) { // Detect when all comings are zeros
             if (coeffs[i] == 0) {
                 cpt_zeros++;
-                /* !!!! attention "i" s'arret à "fin" et non pas à 63 */
+                // !!!!!!! "i" s'arret à "fin" et non pas à 63 
                 if (i == fin) { // Il faut ecrire EOB
                     Chemin_Huff eob;
                     if (is_Y) {
@@ -49,10 +49,10 @@ void chaine_Huff_vect_progressif(FILE *f, int16_t *coeffs, bool is_Y, bool is_Cb
 
 /* make_JPEG.c */
 
-/* =================================================== Mode Progressif ============================================== */
+/*  Mode Progressif */
 
 /* 
-    ==========> Schema general du scan pour le mode progressif : 
+    => Schema general du scan pour le mode progressif : 
 
     Scan_1 :    on scanne les DC de toutes les composantes          (debut = 0 et fin = 0)
                     -> Y            si .pgm (nb_colors == 1)
@@ -170,7 +170,7 @@ void add_JPEG_total_bitstream_progressif(FILE *f, int nb_blocs, bloc *blocs, int
 
     /* on fait "pred? = (blocs[i].data)[0];" uniqument pour traiter les DC */
 
-    /* ===================== Huffmann ===================== */
+    /* Huffmann */
     if (scan == 0) {
         for (int i = 0; i < nb_blocs; i++) {
             if (blocs[i].type == Y) {
