@@ -14,8 +14,9 @@ Le traitement se fait MCU par MCU (Minimum Coded Unit). Voici les étapes dans l
 
 ```
 <Fichier>.ppm/pgm : gestion dans  main.c
-      │
-      ▼
+
+          │
+          ▼
 ┌─────────────────────┐
 │  Parsing & padding  │  parser_resize.c
 │  Lecture de l'image │  Lecture ligne par ligne, padding à des multiples de 8*v[0] et 8*h[0]
@@ -185,6 +186,12 @@ quelque modes conseillees:
 make all
 ./tests/test_dct.bin
 ./tests/test_zz.bin
+./tests/test_all.py # On a ajoute beaucoup de tests pour bien evaluer le programe
+
+# Plusieurs images pgm et ppm prises de la USC-SIPI Image Database pour les tests seulement.
+./images/test_pics
+./images/test_pics/pgm_tests
+./images/test_pics/ppm_tests
 ```
 
 ### Intégration (pytest)
@@ -205,6 +212,6 @@ make couverture
 
 | Membre                      | Modules                                                                                                        |
 |-----------------------------|----------------------------------------------------------------------------------------------------------------|
-| **Saad Boubekri**           | Parseur PPM/PGM (de l'image complete + ligne par ligne des MCU), padding, buffer glissant, interface CLI (`parser_resize.c`, `main.c`)                        |
-| **Ayman Boulaich**          | RGB→YCbCr, DCT (naïve + optimisée 1D séparable), zig-zag, quantification, découpage MCU et sampling factors (`rgb_ycbcr.c`, `dct.c`, `zz.c`, `quantification.c`, `mcu_compression.c`) |
-| **Mohammed Amine Zerouali** | Codage RLE et de Huffman des AC/DC, écriture du bitstream et des marqueurs JPEG (`codage_rle.c`, `make_JPEG.c`) |
+| **Saad Boubekri**           | Parseur PPM/PGM (de l'image complete + ligne par ligne des MCU), padding, buffer glissant, interface CLI (`parser_resize.c`, `main.c`, `progressif.c`)                        |
+| **Ayman Boulaich**          | RGB→YCbCr, DCT (naïve + optimisée 1D séparable), zig-zag, quantification, découpage MCU et sampling factors (`rgb_ycbcr.c`, `dct.c`, `zz.c`, `quantification.c`, `mcu_compression.c`, `traitement_mcu.c`, `progressif.c`) |
+| **Mohammed Amine Zerouali** | Codage RLE et de Huffman des AC/DC, écriture du bitstream et des marqueurs JPEG (`codage_rle.c`, `make_JPEG.c`, `progressif.c`) |
