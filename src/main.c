@@ -61,11 +61,11 @@ int main(int argc, char **argv) {
     }
 
     FILE *f_ecrire = fopen(output_path, "wb");
-    if (!f_ecrire) {
-        perror("fopen ecriture");
-        if (output_path_allocated) free(output_path);
-        exit(1);
-    }
+    // if (!f_ecrire) {
+    //     perror("fopen ecriture");
+    //     if (output_path_allocated) free(output_path);
+    //     exit(1);
+    // }
     if (output_path_allocated) free(output_path);
 
     /* SAMPLING */
@@ -167,6 +167,7 @@ int main(int argc, char **argv) {
         }
     } else {
         fprintf(stderr, "Usage: %s [--outfile=<output.jpg>] [--sample=HxV,HxV,HxV] [--mode=s/p] <input>\n", argv[0]);
+        exit(1);
     }
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);

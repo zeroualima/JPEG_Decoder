@@ -245,6 +245,11 @@ SCENARII["cli"] = [
         "ref": str(invader),
         "out": str(invader_jpg)
     },
+    {
+        "id": "Mode non conforme",
+        "cmd": [exe, f"--mode=a", str(invader)],
+        "should_succeed": False
+    },
 
     
 
