@@ -19,30 +19,30 @@ void skip_whitespace_and_comments(FILE *fp) {
 }
 
 
-
-
-
-
 void init_image(Image *image, char *path, sampling_factors s) {
     image->f = fopen(path, "rb");
 
     if (!fscanf(image->f, "%2s", image->magic)) {
         fclose(image->f);
+        fprintf(stderr, "Pas de nombre magic dans le fichier d'entree\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->w)) {
         fclose(image->f);
+        fprintf(stderr, "Lageur inconvenable\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->h)) {
         fclose(image->f);
+        fprintf(stderr, "Hauteur inconvenable\n");
         exit(1);
     }
     skip_whitespace_and_comments(image->f);
     if (!fscanf(image->f, "%d", &image->maxval)) {
         fclose(image->f);
+        fprintf(stderr, "Maxval inconvenable\n");
         exit(1);
     }
     fgetc(image->f);
@@ -76,14 +76,14 @@ void fill_mcu(Image *image, rgb_mcu *m, sampling_factors s, long start_position)
 
     bytes_per_pixel =  image->colors; //just renaming for clarity
 
-    row_stride      = image->w * bytes_per_pixel; //row width measured in bytes
+    row_stride = image->w * bytes_per_pixel; //row width measured in bytes
 
     /*mcu specs*/
-    mcu_width   = 8 * s.h[0];
-    mcu_height  = 8 * s.v[0];
+    mcu_width = 8 * s.h[0];
+    mcu_height = 8 * s.v[0];
 
 
-    data_offset    = start_position - image->header_offset;//measure the position relative to the mcu starting position (in bytes)
+    data_offset = start_position - image->header_offset; //measure the position relative to the mcu starting position (in bytes)
 
     /* where do the mcu start : row and col of its first pixel*/
     mcu_row_start = (int)(data_offset / row_stride); 

@@ -23,6 +23,28 @@ invader_jpg =  out_dir/"invader.jpg"
 motif = "../out/"
 bloated_invader = f"{invader_jpg.parent}/" + motif * ((4095 - len(str(invader_jpg)))//len(motif)) + invader_jpg.name
 
+### Pour les tests
+test_pics_dir = images_dir/"test_pics"
+fich_sans_extension = test_pics_dir/"image"
+fich_inexistant = test_pics_dir/"inexistant.pgm"
+pas_de_nbr_magic = test_pics_dir/"pas_de_nbr_magic.pgm"
+w_inconvenable = test_pics_dir/"w_inconvenable.pgm"
+h_inconvenable = test_pics_dir/"h_inconvenable.pgm"
+maxval_inconvenable = test_pics_dir/"maxval_inconvenable.pgm"
+comment = test_pics_dir/"comment.pgm"
+
+comment_jpg = test_pics_dir/"comment.jpg"
+
+### Pour tester le progressif
+bisou = etu_dir/"bisou.pgm" 
+zigzag = etu_dir/"zig-zag.ppm"
+horizontal = etu_dir/"horizontal.ppm"
+bisou_jpg =  out_dir/"bisou.jpg"
+zigzag_jpg = out_dir/"zig-zag.jpg"
+horizontal_jpg = out_dir/"horizontal.jpg"
+mode_prog = "p"
+
+
 def pytest_error(message, command="", stdout="", stderr=""):
     """Formatage propre des erreurs pour l'étudiant."""
     command_str = " ".join(command)
@@ -219,6 +241,101 @@ SCENARII["cli"] = [
         "cmd": [exe, f"--outfile={bloated_invader}", str(invader)],
         "ref": str(invader),
         "out": str(invader_jpg)
+    },
+
+    
+
+    # TESTS
+    {
+        "id": "Pas d'extension dans l'entree",
+        "cmd": [exe, str(fich_sans_extension)],
+        "should_succeed": False
+    },
+    {
+        "id": "Fichier inexistant",
+        "cmd": [exe, str(fich_inexistant)],
+        "should_succeed": False
+    },
+
+
+
+    # TEST DE MAUVAIS SAMPLING_FACTORS
+    {
+        "id": "Sampling factors non entiers",
+        "cmd": [exe, f"--sample=ax1,1x1,1x1", str(invader)],
+        "should_succeed": False
+    },
+    {
+        "id": "Valeur d'un sampling factor > 4",
+        "cmd": [exe, f"--sample=5x1,1x1,1x1", str(invader)],
+        "should_succeed": False
+    },
+    {
+        "id": "Somme des sampling factors > 10",
+        "cmd": [exe, f"--sample=3x3,2x2,1x1", str(invader)],
+        "should_succeed": False
+    },
+    {
+        "id": "h0 n'est pas divisible par h1 ou h2",
+        "cmd": [exe, f"--sample=1x1,2x2,2x2", str(invader)],
+        "should_succeed": False
+    },
+
+
+    # TESTS DE CONFORMITE DES PARAMETRES DU FICHIER IMAGE EN ENTREE
+    {
+        "id": "Numero magic incorrect / fichier vide",
+        "cmd": [exe, str(pas_de_nbr_magic)],
+        "should_succeed": False
+    },
+    {
+        "id": "Largeur inconvenable",
+        "cmd": [exe, str(w_inconvenable)],
+        "should_succeed": False
+    },
+    {
+        "id": "Hauteur inconvenable",
+        "cmd": [exe, str(h_inconvenable)],
+        "should_succeed": False
+    },
+    {
+        "id": "Maxval inconvenable",
+        "cmd": [exe, str(maxval_inconvenable)],
+        "should_succeed": False
+    },
+    {
+        "id": "PGM avec Commentaire",
+        "cmd": [exe, f"--outfile=images/test_pics/comment.jpg", str(comment)],
+        "ref": str(comment),
+        "out": str(comment_jpg)
+    },
+
+
+
+    # TESTS DU MODE PROGRESSIF
+    {
+        "id": "Invader avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(invader)],
+        "ref": str(invader),
+        "out": str(invader_jpg)
+    },
+    {
+        "id": "Bisou avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(bisou)],
+        "ref": str(bisou),
+        "out": str(bisou_jpg)
+    },
+    {
+        "id": "Zig-Zag avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(zigzag)],
+        "ref": str(zigzag),
+        "out": str(zigzag_jpg)
+    },
+    {
+        "id": "Horizontal avec --mode",
+        "cmd": [exe, f"--mode={mode_prog}", str(horizontal)],
+        "ref": str(horizontal),
+        "out": str(horizontal_jpg)
     }
 ]
 

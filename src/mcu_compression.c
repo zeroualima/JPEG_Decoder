@@ -1,5 +1,6 @@
 #include "mcu_compression.h"
 
+/* il faut ajouter un test avec un mal "sampling_factors" */
 void test_sampling_factors(sampling_factors s) {
     int sum = 0;
 
@@ -29,7 +30,7 @@ void test_sampling_factors(sampling_factors s) {
     return;
 }
 
-// /* calcule de nombre de MCU totale */
+/* calcule de nombre de MCU totale */
 // int nbr_mcu(int width, int height, sampling_factors s) {
     
 //     int mcu_width  = s.h[0] * 8;

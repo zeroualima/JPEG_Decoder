@@ -3,8 +3,8 @@
 
 #include "dct.h"
 
-// // Un prototype pour une ZZ qui travaille en place
-// // A jeter selon vos besoins/choix
+// Un prototype pour une ZZ qui travaille en place
+// A jeter selon vos besoins/choix
 // void zz(uint8_t *block) {
 // 	(void)block;
 // }
