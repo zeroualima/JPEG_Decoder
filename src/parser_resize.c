@@ -100,7 +100,8 @@ void fill_mcu(Image *image, rgb_mcu *m, sampling_factors s, long start_position)
         file_offset = image->header_offset + (long)mcu_row_start * row_stride;
         fseek(image->f, file_offset, SEEK_SET);
         if (fread(image->row_buffer, bytes_per_pixel, rows_to_read * image->w, image->f) == 0){
-                fprintf(stderr, " failed to read from the file\n");
+            fprintf(stderr, " failed to read from the file\n");
+            exit(1);
         }
         
         image->row_buffer_mcu_start = mcu_row_start;
