@@ -1,7 +1,5 @@
 # JPEG Encoder
 
-[Dashboard](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
-
 This project implements a JPEG encoder from scratch in C. It takes PPM (color) or PGM (grayscale) images as input and produces valid JPEG files compliant with the JFIF standard.
 
 ---
