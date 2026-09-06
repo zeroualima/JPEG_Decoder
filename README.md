@@ -1,217 +1,221 @@
-# Encodeur JPEG | JPEG ENCODER
+# JPEG Encoder
 
-![Coverage](https://gitlab.ensimag.fr/formationc/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama/badges/main/coverage.svg)
+[Dashboard](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
 
-[Tableau de bord](https://formationc.pages.ensimag.fr/projet/jpeg/2026/13_boubekrs_boulaiay_zerouama)
-
-Ce projet implémente un encodeur JPEG from scratch en C. Il prend en entrée des images PPM (couleur) ou PGM (niveaux de gris) et produit des fichiers JPEG valides conformes au standard JFIF.
+This project implements a JPEG encoder from scratch in C. It takes PPM (color) or PGM (grayscale) images as input and produces valid JPEG files compliant with the JFIF standard.
 
 ---
 
-## Pipeline de compression
+## Compression Pipeline
 
-Le traitement se fait MCU par MCU (Minimum Coded Unit). Voici les étapes dans l'ordre :
+Processing is done MCU by MCU (Minimum Coded Unit). Here are the steps in order:
 
 ```
-<Fichier>.ppm/pgm : gestion dans  main.c
+<File>.ppm/pgm : handled in main.c
 
           │
           ▼
 ┌─────────────────────┐
 │  Parsing & padding  │  parser_resize.c
-│  Lecture de l'image │  Lecture ligne par ligne, padding à des multiples de 8*v[0] et 8*h[0]
+│  Image reading      │  Line-by-line reading, padding to multiples of 8*v[0] and 8*h[0]
 └─────────┬───────────┘
-          │  rgb_mcu  (pixels bruts par MCU)
+          │  rgb_mcu  (raw pixels per MCU)
           ▼
 ┌─────────────────────┐
 │  RGB → YCbCr        │  rgb_ycbcr.c    
 └─────────┬───────────┘
-          │  ycbcr_mcu  (composantes Y, Cb, Cr séparées)
+          │  ycbcr_mcu  (separated Y, Cb, Cr components)
           ▼
 ┌─────────────────────┐
-│  Découpage en blocs │  mcu_compression.c
-│  + sous-échant.     │  Blocs 8*8, sous-echantillonnage Cb/Cr selon les facteurs H*V 
+│  Block splitting    │  mcu_compression.c
+│  + subsampling      │  8x8 blocks, Cb/Cr subsampling according to H*V factors 
 └─────────┬───────────┘
-          │  bloc[]  (tableau de blocs 8*8 de type Y, Cb ou Cr)
+          │  bloc[]  (array of 8x8 blocks of type Y, Cb, or Cr)
           ▼
 ┌─────────────────────┐
-│  DCT 2D             │  dct.c
-│  (séparable 1D)     │  Transformee en cosinus discrete sur chaque bloc 8*8
-└─────────┬───────────┘
-          │
-          ▼
-┌─────────────────────┐
-│  Scan zig-zag       │  zz.c
-│                     │  Reordonnancement zigzag
+│  2D DCT             │  dct.c
+│  (1D separable)     │  Discrete cosine transform on each 8x8 block
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
-│  Quantification     │  quantification.c
-│                     │  Tables Q distinctes pour Y et Cb/Cr
+│  Zig-zag scan       │  zz.c
+│                     │  Zig-zag reordering
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
-│  Codage RLE/Huffman │  codage_rle.c + htables.c
-│                     │  Codage DC différentiel, AC run-length + tables Huffman JPEG standard
+│  Quantization       │  quantification.c
+│                     │  Distinct Q tables for Y and Cb/Cr
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
-│  Écriture JPEG      │  make_JPEG.c
-│                     │  ecriture des  marqueurs (SOI, APP0, DQT, SOF0, DHT, SOS, Donnees brutes, EOI)
+│  RLE/Huffman coding │  codage_rle.c + htables.c
+│                     │  Differential DC coding, AC run-length + standard JPEG Huffman tables
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  JPEG writing       │  make_JPEG.c
+│                     │  Writing markers (SOI, APP0, DQT, SOF0, DHT, SOS, Raw data, EOI)
 └─────────────────────┘
           │
           ▼
-    <Fichier>.jpg    : ohhh finalement!!
+    <File>.jpg     : finally!!
 
 ```
 
 ---
 
-## Structures de données
+## Data Structures
 
-Les structures principales qui circulent dans le pipeline :
+The main structures flowing through the pipeline:
 
 ```c
-/* Facteurs de sous-échantillonnage pour les 3 composantes (Y, Cb, Cr) */
+/* Subsampling factors for the 3 components (Y, Cb, Cr) */
 typedef struct {
-    uint8_t h[3];   // facteurs horizontaux
-    uint8_t v[3];   // facteurs verticaux
+    uint8_t h[3];   // horizontal factors
+    uint8_t v[3];   // vertical factors
 } sampling_factors;
 
-/* Représente l'image source avec ses métadonnées et un buffer glissant pour la lecture */
+/* Represents the source image with its metadata and a sliding buffer for reading */
 typedef struct {
-    int w, h;               // dimensions originales
-    int pw, ph;             // dimensions après padding (multiples de 8*h[0] et 8*v[0])
+    int w, h;               // original dimensions
+    int pw, ph;             // dimensions after padding (multiples of 8*h[0] and 8*v[0])
     int colors;             // 1 = PGM, 3 = PPM
-    uint8_t *row_buffer;    // fenêtre glissante de mcu_height lignes de pixels
-    long header_offset;     // offset du premier octet de pixel dans le fichier
+    uint8_t *row_buffer;    // sliding window of mcu_height pixel lines
+    long header_offset;     // offset of the first pixel byte in the file
     FILE *f;
     // ...
 } Image;
 
-/* MCU brute en RGB — un tableau de pixels, chaque pixel = [R,G,B] ou [Y] */
+/* Raw RGB MCU — an array of pixels, each pixel = [R,G,B] or [Y] */
 typedef struct { RGB *data; } rgb_mcu;
 
-/* MCU après conversion, composantes séparées */
+/* MCU after conversion, separated components */
 typedef struct {
     uint8_t *Y, *Cb, *Cr;
 } ycbcr_mcu;
 
-/* Un bloc 8*8 de coefficients, avec son type pour savoir quelle table Huffman utiliser */
+/* An 8x8 block of coefficients, with its type to know which Huffman table to use */
 typedef struct {
     int16_t data[64];
-    bloc_type type;   // Y, Cb ou Cr
+    bloc_type type;   // Y, Cb, or Cr
 } bloc;
+
 ```
 
 ---
 
 ## Compilation
 
-### Prérequis
+### Prerequisites
 
-- GCC (C99)
-- `make`
-- Python 3 + pip (tests d'intégration)
-- `gcovr` (couverture)
-- `valgrind` + `kcachegrind` (profilage, optionnel)
+* GCC (C99)
+* `make`
+* Python 3 + pip (integration tests)
+* `gcovr` (coverage)
+* `valgrind` + `kcachegrind` (profiling, optional)
 
-### Cibles make
+### Make Targets
 
-| Commande          | Ce que ça fait                                                   |
-|-------------------|------------------------------------------------------------------|
-| `make all`        | Compile l'encodeur + les tests (ASan + couverture activés)       |
-| `make debug`      | Recompile proprement en mode debug (`-Og`, ASan)                 |
-| `make perf`       | Recompile en `-O3` sans instrumentation pour mesurer les perfs   |
-| `make tests`      | Lance toute la suite de tests (Unity + pytest)                   |
-| `make couverture` | Tests + rapport de couverture HTML                               |
-| `make profilage`  | Callgrind sur l'image de test + ouverture dans kcachegrind       |
-| `make clean`      | Supprime les binaires                                            |
-| `make realclean`  | Nettoyage complet avant commit                                   |
+| Command | Description |
+| --- | --- |
+| `make all` | Compiles the encoder + tests (ASan + coverage enabled) |
+| `make debug` | Clean recompile in debug mode (`-Og`, ASan) |
+| `make perf` | Recompiles in `-O3` without instrumentation for performance measurement |
+| `make tests` | Runs the entire test suite (Unity + pytest) |
+| `make couverture` | Tests + HTML coverage report |
+| `make profilage` | Callgrind on the test image + opens in kcachegrind |
+| `make clean` | Removes binaries |
+| `make realclean` | Complete cleanup before commit |
 
 ```bash
-make all    # compilation standard
-make debug  # si vous voulez déboguer avec gdb
+make all    # standard compilation
+make debug  # if you want to debug with gdb
+
 ```
 
 ---
 
-## Utilisation
+## Usage
 
 ```
-./ppm2jpeg [--outfile=<fichier.jpg>] [--sample=H1xV1,H2xV2,H3xV3] <input.ppm|input.pgm>
+./ppm2jpeg [--outfile=<file.jpg>] [--sample=H1xV1,H2xV2,H3xV3] <input.ppm|input.pgm>
+
 ```
 
-| Option                    | Description                                                        |
-|---------------------------|--------------------------------------------------------------------|
-| `--outfile=<fichier.jpg>` | Fichier de sortie (par défaut : `out/<nom>.jpg`)                   |
-| `--sample=HxV,HxV,HxV`   | Facteurs de sous-échantillonnage pour Y, Cb, Cr                    |
+| Option | Description |
+| --- | --- |
+| `--outfile=<file.jpg>` | Output file (default: `out/<name>.jpg`) |
+| `--sample=HxV,HxV,HxV` | Subsampling factors for Y, Cb, Cr |
 
 ```bash
-# Couleur sans sous-échantillonnage
+# Color without subsampling
 ./ppm2jpeg images/etu/shaun_the_sheep.ppm
 
-# 4:2:0 avec fichier de sortie explicite
+# 4:2:0 with explicit output file
 ./ppm2jpeg --sample=2x2,1x1,1x1 --outfile=out/result.jpg images/etu/horizontal.ppm
 
-# Niveaux de gris
+# Grayscale
 ./ppm2jpeg images/etu/invader.pgm
+
 ```
 
 ---
 
-## Sous-échantillonnage chrominance
+## Chrominance Subsampling
 
-Le flag `--sample=H0xV0,H1xV1,H2xV2` définit les facteurs pour Y, Cb et Cr. Une MCU contient alors `H0*V0` blocs Y, `H1*V1` blocs Cb et `H2*V2` blocs Cr.
-quelque modes conseillees:
+The `--sample=H0xV0,H1xV1,H2xV2` flag sets the factors for Y, Cb, and Cr. An MCU then contains `H0*V0` Y blocks, `H1*V1` Cb blocks, and `H2*V2` Cr blocks.
+Some recommended modes:
 
-| Mode  | `--sample`     | Remarque                                   |
-|-------|----------------|--------------------------------------------|
-| 4:4:4 | `1x1,1x1,1x1` | Pas de sous-échantillonnage (défaut)        |
-| 4:2:2 | `2x1,1x1,1x1` | Sous-échantillonnage horizontal seulement   |
-| 4:2:0 | `2x2,1x1,1x1` | Le plus courant, horizontal + vertical      |
-| 4:1:1 | `4x1,1x1,1x1` | Sous-échantillonnage horizontal fort        |
-
+| Mode | `--sample` | Notes |
+| --- | --- | --- |
+| 4:4:4 | `1x1,1x1,1x1` | No subsampling (default) |
+| 4:2:2 | `2x1,1x1,1x1` | Horizontal subsampling only |
+| 4:2:0 | `2x2,1x1,1x1` | Most common, horizontal + vertical |
+| 4:1:1 | `4x1,1x1,1x1` | Strong horizontal subsampling |
 
 ---
 
 ## Tests
 
-### Unitaires (Unity)
+### Unit Tests (Unity)
 
 ```bash
 make all
 ./tests/test_dct.bin
 ./tests/test_zz.bin
-./tests/test_all.py # On a ajoute beaucoup de tests pour bien evaluer le programe
+./tests/test_all.py # We added many tests to properly evaluate the program
 
-# Plusieurs images pgm et ppm prises de la USC-SIPI Image Database pour les tests seulement.
+# Several pgm and ppm images taken from the USC-SIPI Image Database for testing purposes only.
 ./images/test_pics
 ./images/test_pics/pgm_tests
 ./images/test_pics/ppm_tests
+
 ```
 
-### Intégration (pytest)
+### Integration (pytest)
 
 ```bash
 make tests
+
 ```
 
-### Couverture
+### Coverage
 
 ```bash
 make couverture
+
 ```
 
-
 ---
-## Répartition des tâches
 
-| Membre                      | Modules                                                                                                        |
-|-----------------------------|----------------------------------------------------------------------------------------------------------------|
-| **Saad Boubekri**           | Parseur PPM/PGM (de l'image complete + ligne par ligne des MCU), padding, buffer glissant, interface CLI (`parser_resize.c`, `main.c`, `progressif.c`)                        |
-| **Ayman Boulaich**          | RGB→YCbCr, DCT (naïve + optimisée 1D séparable), zig-zag, quantification, découpage MCU et sampling factors (`rgb_ycbcr.c`, `dct.c`, `zz.c`, `quantification.c`, `mcu_compression.c`, `traitement_mcu.c`, `progressif.c`) |
-| **Mohammed Amine Zerouali** | Codage RLE et de Huffman des AC/DC, écriture du bitstream et des marqueurs JPEG (`codage_rle.c`, `make_JPEG.c`, `progressif.c`) |
+## Task Distribution
+
+| Member | Modules |
+| --- | --- |
+| **Saad Boubekri** | PPM/PGM parser (complete image + line-by-line MCU reading), padding, sliding buffer, CLI interface (`parser_resize.c`, `main.c`, `progressif.c`) |
+| **Ayman Boulaich** | RGB→YCbCr, DCT (naive + 1D separable optimized), zig-zag, quantization, MCU splitting, and sampling factors (`rgb_ycbcr.c`, `dct.c`, `zz.c`, `quantification.c`, `mcu_compression.c`, `traitement_mcu.c`, `progressif.c`) |
+| **Mohammed Amine Zerouali** | RLE and Huffman coding for AC/DC, bitstream and JPEG markers writing (`codage_rle.c`, `make_JPEG.c`, `progressif.c`) |
